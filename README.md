@@ -17,6 +17,7 @@ The Play Store updates apps on its own, even when auto-update is turned off for 
 - WebUI with app icons and names, search, and tabs for user, system and detached apps
 - One switch per app, changes apply right away without a reboot
 - Status line that shows whether the module is active in the Play Store
+- Installer messages and the module description follow the system language (English or Russian)
 - Command line tool for terminals, plus a short `play-detach` command in Termux
 - Backup and restore of the list, with a built-in folder browser to pick where it is saved
 - Optional `detach.txt` in the module zip to detach apps at install time
