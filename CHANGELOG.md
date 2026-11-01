@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.3
+
+- The WebUI opens reliably on a quick reopen: the app list, the status line and the version no longer stay stuck on "Loading..." until the page is opened again
+
 ## v1.0.2
 
 - Backup and restore: save your detached apps to any folder in internal storage and restore them later, from the Detached tab in the WebUI or with `play-detach backup` / `play-detach restore`

@@ -14,23 +14,62 @@ const $ = (id) => document.getElementById(id);
 const ksu = window.ksu;
 let callSeq = 0;
 
-function exec(cmd) {
+// A command whose answer never comes resolves with errno -2 after timeoutMs,
+// so the page never waits forever.
+function exec(cmd, timeoutMs = 60000) {
   return new Promise((resolve) => {
     if (!ksu) {
       resolve({ errno: -1, stdout: "", stderr: "WebUI bridge not available" });
       return;
     }
     const cb = `pd_exec_${Date.now()}_${callSeq++}`;
+    let done = false;
+    const timer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      window[cb] = () => delete window[cb];
+      resolve({ errno: -2, stdout: "", stderr: "no answer from the root shell" });
+    }, timeoutMs);
     window[cb] = (errno, stdout, stderr) => {
       delete window[cb];
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
       resolve({ errno, stdout: stdout || "", stderr: stderr || "" });
     };
     try {
       ksu.exec(cmd, "{}", cb);
     } catch (e) {
+      done = true;
+      clearTimeout(timer);
       delete window[cb];
       resolve({ errno: -1, stdout: "", stderr: String(e) });
     }
+  });
+}
+
+// On a quick reopen the root manager can run the page's first command before
+// it has registered the new page, and that answer never comes. So before the
+// first real call a harmless echo is sent a few times, a moment apart, and the
+// first answer means the page is registered. Only this echo is repeated,
+// never a real command.
+function ready() {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (!done) {
+        done = true;
+        resolve();
+      }
+    };
+    const ask = () => {
+      if (done) return;
+      exec("echo pd_ok", 15000).then((r) => {
+        if (r.errno === -1 || r.stdout.includes("pd_ok")) finish();
+      });
+    };
+    [0, 400, 1000, 2000, 3500, 6000].forEach((t) => setTimeout(ask, t));
+    setTimeout(finish, 16000);
   });
 }
 
@@ -588,6 +627,8 @@ async function main() {
     listEl.replaceChildren();
     return;
   }
+
+  await ready();
 
   exec(`sed -n 's/^version=//p' ${MODDIR}/module.prop`).then((r) => {
     const v = r.stdout.trim();
