@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Added system-language detection to the installer. It checks the preferred system locale first, then Android locale properties and the activity configuration as a fallback.
+- Added Russian translations for installer messages, including architecture and Android version requirements, Zygisk instructions, Termux setup, and zygisk-detach migration prompts. English remains the fallback for unsupported languages.
+- Localized the module description during installation so root managers can display it in the detected language.
+- Translated package import confirmations shown when importing apps from zygisk-detach or detach.txt.
+- Documented installer and module-description localization in the English and Russian READMEs.
+
 ## v1.0.2
 
 - Backup and restore: save your detached apps to any folder in internal storage and restore them later, from the Detached tab in the WebUI or with `play-detach backup` / `play-detach restore`
