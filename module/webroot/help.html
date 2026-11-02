@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Play Detach - Help</title>
   <link rel="stylesheet" href="style.css">
+  <script src="i18n.js"></script>
 </head>
 <body>
   <header class="top">
@@ -19,16 +20,20 @@
         <polygon points="14.5,18 14.5,24 19.6,21" fill="#22062f"/>
       </svg>
       <div class="title">
-        <h1>Help</h1>
+        <h1 data-i18n="help_title">Help</h1>
         <div class="sub">Play Detach</div>
       </div>
-      <a class="icon-btn" id="back" href="index.html" aria-label="Back to apps">
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="ru" aria-pressed="false">RU</button>
+      </div>
+      <a class="icon-btn back" id="back" href="index.html" aria-label="Back to apps" data-i18n-aria="back_to_apps">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
       </a>
     </div>
   </header>
 
-  <main class="help">
+  <main class="help" data-body="en" lang="en">
     <section>
       <h2>What it does</h2>
       <p>The Play Store updates apps on its own, even when auto-update is turned off for them. Play Detach hides the apps you choose from the Play Store, so it never offers or installs updates for them.</p>
@@ -87,6 +92,12 @@
     </section>
 
     <section>
+      <h2>Language</h2>
+      <p>The <strong>EN / RU</strong> switch next to Help changes the language of the whole module: the app, this help page and the module description in your root manager. The choice is remembered. The first time, the language follows the phone. The installer also shows its messages in the chosen language.</p>
+      <p>The command line and the module log are always in English.</p>
+    </section>
+
+    <section>
       <h2>Command line</h2>
       <p>Everything in this page can also be done from a terminal with root. In Termux the short command <code>play-detach</code> is installed as well.</p>
       <div class="cmds">
@@ -142,10 +153,144 @@
 
     <section>
       <h2>Tested on</h2>
-      <p>Poco F6 Pro with the Xiaomi.eu ROM (Android 16), SukiSU-Ultra and ReZygisk. Other devices should work but were not tested.</p>
+      <ul>
+        <li>Poco F6 Pro with the Xiaomi.eu ROM (Android 16), SukiSU-Ultra and ReZygisk</li>
+        <li>Xiaomi Redmi Note 8T with the InfinityX ROM (Android 17), BakaSU and Zygisk Next (tested by <a href="https://github.com/LegacyFreeman">LegacyFreeman</a>)</li>
+      </ul>
+      <p>Other devices should work but were not tested.</p>
     </section>
 
-    <p class="foot">Play Detach by Tears Burn. Based on <a href="https://github.com/j-hc/zygisk-detach">zygisk-detach</a> by j-hc. Apache License 2.0.</p>
+    <p class="foot">Play Detach by <a href="https://github.com/nikakvo">Tears Burn</a>. Based on <a href="https://github.com/j-hc/zygisk-detach">zygisk-detach</a> by <a href="https://github.com/j-hc">j-hc</a>. Russian translation by <a href="https://github.com/LegacyFreeman">LegacyFreeman</a>. Apache License 2.0.</p>
+  </main>
+
+  <main class="help" data-body="ru" lang="ru" hidden>
+    <section>
+      <h2>Что делает модуль</h2>
+      <p>Play Маркет обновляет приложения сам, даже если для них отключено автообновление. Play Detach скрывает выбранные вами приложения от Play Маркета, поэтому он никогда не предлагает и не устанавливает для них обновления.</p>
+      <p>Сами приложения не изменяются. Они продолжают работать, и вы можете обновить их вручную в любое время.</p>
+    </section>
+
+    <section>
+      <h2>Как пользоваться</h2>
+      <ol>
+        <li>Найдите приложение на вкладке <strong>Сторонние</strong> или <strong>Системные</strong>. Поиск ищет по названию и по имени пакета.</li>
+        <li>Включите переключатель рядом с ним. Изменение применяется сразу, Play Маркет перезапускается, перезагрузка не нужна.</li>
+        <li>На вкладке <strong>Откреплённые</strong> собраны все откреплённые приложения. Выключите переключатель, чтобы Play Маркет снова видел приложение.</li>
+      </ol>
+      <p>Приложения с пометкой <strong>Не установлено</strong> ещё в вашем списке, но уже удалены с телефона. Они остаются откреплёнными, поэтому пропатченное приложение, которое вы установите снова, сразу защищено. Чтобы убрать их, нажмите <strong>Убрать</strong> в заметке вверху вкладки Откреплённые или выключите их по одному.</p>
+    </section>
+
+    <section>
+      <h2>Приложения вне Маркета</h2>
+      <p>Приложения с пометкой <strong>Вне Маркета</strong> установлены не через Play Маркет: из APK-файлов, из других магазинов, пропатченные, восстановленные из бэкапа или установленные через adb или root-терминал. Android помнит, какое приложение установило каждый пакет, и всё, что установлено не Play Маркетом, считается «вне Маркета». Удерживайте приложение, чтобы увидеть установщик в строке <strong>Установлено через</strong>.</p>
+      <p>Play Маркет всё равно может заменить такие приложения своей версией и отменить патч, поэтому обычно именно их и стоит открепить.</p>
+      <p>На вкладке <strong>Сторонние</strong> нажмите <strong>Вне Маркета</strong>, чтобы показать только их, а затем <strong>Открепить все</strong>, чтобы открепить их одним нажатием. <strong>Открепить все</strong> всегда действует на приложения из списка, который вы видите, поэтому работает и вместе с поиском. Перед изменением модуль спрашивает подтверждение.</p>
+    </section>
+
+    <section>
+      <h2>Несколько приложений сразу</h2>
+      <p>Нажмите <strong>Выбрать</strong> на вкладке Сторонние или удерживайте любое приложение и выберите <strong>Выбрать несколько приложений</strong>. Отметьте приложения касанием и нажмите <strong>Открепить</strong> или <strong>Прикрепить</strong> в панели внизу. <strong>Выбрать все</strong> отмечает все приложения в текущем списке. Крестик завершает выбор.</p>
+    </section>
+
+    <section>
+      <h2>Меню приложения</h2>
+      <p>Удерживайте приложение, чтобы открыть его меню:</p>
+      <ul>
+        <li><strong>Установлено через</strong> - какое приложение его установило: Play Маркет, установщик пакетов (APK-файл), приложение для бэкапа, другой магазин или неизвестно (adb, root-терминал или прошивка).</li>
+        <li><strong>Открыть в Play Маркете</strong> - открывает страницу приложения: так легко проверить, что у откреплённого приложения больше нет кнопки «Обновить».</li>
+        <li><strong>Выбрать несколько приложений</strong> - начинает выбор, в котором это приложение уже отмечено.</li>
+        <li><strong>Копировать имя пакета</strong> - для командной строки или файла <code>detach.txt</code>.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Бэкап и восстановление</h2>
+      <p>Модуль хранит бэкапы в своей папке <strong>Play-Detach</strong> во внутренней памяти (<code>/sdcard/Play-Detach</code>), она создаётся при установке модуля. Если удалить эту папку, бэкапы сохраняются в <strong>Download</strong>; повторная установка модуля создаёт папку снова.</p>
+      <p>Откройте вкладку <strong>Откреплённые</strong>: прямо под вкладками появится ряд кнопок. <strong>Бэкап</strong> открывает папку Play-Detach: при желании измените имя файла или перейдите в другую папку и нажмите <strong>Сохранить сюда</strong>. <strong>Восстановить</strong> открывает ту же папку: нажмите на файл бэкапа. <strong>Прикрепить все</strong> очищает весь список после подтверждения.</p>
+      <p><strong>Автоматический бэкап.</strong> После каждого изменения список также сохраняется в <code>play-detach-auto.txt</code> в той же папке, и окно восстановления показывает его первым как <strong>Автоматический бэкап</strong>. Пустой список никогда его не заменяет, поэтому после «Прикрепить все» старый список можно вернуть. Включается и выключается переключателем <strong>Автоматический бэкап</strong> в окнах бэкапа и восстановления или командой <code>play-detach autobackup off</code> / <code>on</code>.</p>
+      <p>Восстановление заменяет текущий список списком из файла. Бэкапы - это обычные текстовые файлы, по одному пакету на строку, поэтому их можно редактировать или использовать как <code>detach.txt</code>. При удалении модуля они остаются в памяти.</p>
+    </section>
+
+    <section>
+      <h2>Строка статуса</h2>
+      <ul>
+        <li><strong>Работает в Play Маркете</strong> - модуль работает в Play Маркете.</li>
+        <li><strong>Применится при запуске Play Маркета</strong> - список изменился после последнего запуска Play Маркета; он сохранён и загрузится, когда Play Маркет откроется снова.</li>
+        <li><strong>Проблема</strong> - модуль не смог запуститься в Play Маркете. В сообщении указана причина; см. «Устранение неполадок» ниже.</li>
+      </ul>
+      <p><strong>Оранжевый цвет сразу после изменения - это нормально.</strong> Когда вы переключаете приложение, Play Маркет закрывается, а новый список сохраняется. Точка остаётся оранжевой, пока Play Маркет не запустится и не загрузит новый список, затем становится зелёной. Откройте Play Маркет один раз или просто подождите, пока он запустится в фоне.</p>
+    </section>
+
+    <section>
+      <h2>Язык</h2>
+      <p>Переключатель <strong>EN / RU</strong> рядом с кнопкой Справка меняет язык всего модуля: приложения, этой справки и описания модуля в root-менеджере. Выбор запоминается. При первом запуске язык выбирается по языку телефона. Установщик модуля тоже показывает сообщения на выбранном языке.</p>
+      <p>Командная строка и журнал модуля всегда на английском.</p>
+    </section>
+
+    <section>
+      <h2>Командная строка</h2>
+      <p>Всё, что есть на этой странице, можно сделать и из терминала с root-правами. В Termux также устанавливается короткая команда <code>play-detach</code>.</p>
+      <div class="cmds">
+        <div class="cmd"><span>Показать откреплённые приложения</span><pre>su -c '/data/adb/modules/play-detach/play-detach list'</pre></div>
+        <div class="cmd"><span>Открепить одно или несколько приложений</span><pre>su -c '/data/adb/modules/play-detach/play-detach add com.example.app'</pre></div>
+        <div class="cmd"><span>Прикрепить приложение обратно</span><pre>su -c '/data/adb/modules/play-detach/play-detach remove com.example.app'</pre></div>
+        <div class="cmd"><span>Прикрепить все обратно</span><pre>su -c '/data/adb/modules/play-detach/play-detach clear'</pre></div>
+        <div class="cmd"><span>Проверить, активен ли текущий список</span><pre>su -c '/data/adb/modules/play-detach/play-detach status'</pre></div>
+        <div class="cmd"><span>Сохранить бэкап в папку Play-Detach</span><pre>su -c '/data/adb/modules/play-detach/play-detach backup'</pre></div>
+        <div class="cmd"><span>Восстановить бэкап</span><pre>su -c '/data/adb/modules/play-detach/play-detach restore /sdcard/Play-Detach/play-detach-backup.txt'</pre></div>
+        <div class="cmd"><span>Восстановить автоматический бэкап</span><pre>su -c '/data/adb/modules/play-detach/play-detach restore /sdcard/Play-Detach/play-detach-auto.txt'</pre></div>
+        <div class="cmd"><span>Выключить автоматический бэкап (включить снова - on)</span><pre>su -c '/data/adb/modules/play-detach/play-detach autobackup off'</pre></div>
+        <div class="cmd"><span>Все команды</span><pre>su -c '/data/adb/modules/play-detach/play-detach help'</pre></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Открепление при установке</h2>
+      <p>Положите файл <code>detach.txt</code> в корень zip-архива модуля, по одному имени пакета на строку. Эти приложения открепятся во время установки модуля. Строки, начинающиеся с <code>#</code>, пропускаются.</p>
+    </section>
+
+    <section>
+      <h2>Как это работает</h2>
+      <p>Play Detach - модуль Zygisk. Он загружается только в процесс Play Маркета. Когда Play Маркет спрашивает систему, установлено ли откреплённое приложение, модуль изменяет этот запрос, и система отвечает, что такого приложения нет.</p>
+      <p>Список хранится в <code>/data/adb/play-detach/detach.list</code>, по одному пакету на строку. Ничего за пределами Play Маркета не затрагивается.</p>
+    </section>
+
+    <section>
+      <h2>Требования</h2>
+      <ul>
+        <li>Устройство arm64 с Android 10 или новее</li>
+        <li>Рабочий Zygisk: ReZygisk, Zygisk Next или NeoZygisk на KernelSU, SukiSU-Ultra или APatch, либо включённый Zygisk в Magisk</li>
+        <li>zygisk-detach не должен работать одновременно, оба модуля изменяют одни и те же вызовы Play Маркета. Если он установлен, Play Detach при установке копирует его откреплённые приложения и предлагает удалить его (Vol+), оставить (Vol-), а если клавиша не нажата, отключает его</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Устранение неполадок</h2>
+      <p>Если приложение всё ещё видно в Play Маркете, закройте Play Маркет, очистите его кэш в настройках системы и откройте снова. Затем проверьте журнал модуля:</p>
+      <pre>su -c 'logcat -d -s PlayDetach'</pre>
+      <p>Строка <strong>active in Play Store</strong> означает, что модуль работает. Любое другое сообщение называет шаг, на котором произошла ошибка, например отсутствие Zygisk или изменения в новой версии Android.</p>
+    </section>
+
+    <section>
+      <h2>Из чего состоит</h2>
+      <ul>
+        <li><strong>Библиотека Zygisk</strong> - C++20, собрана с Android NDK r29 для arm64-v8a. Использует Zygisk API v4, поэтому работает на ReZygisk, Zygisk Next, NeoZygisk и Magisk. Без сторонних библиотек. Каждое чтение данных binder Play Маркета проверяется на выход за границы, а при любых неожиданных данных вызов пропускается без изменений.</li>
+        <li><strong>Инструмент командной строки</strong> - обычный shell-скрипт. Список записывается во временный файл и затем подменяется, поэтому Play Маркет никогда не прочитает наполовину записанный список.</li>
+        <li><strong>WebUI</strong> - чистые HTML, CSS и JavaScript без фреймворков и сборки. Названия и иконки приложений берутся из WebUI API root-менеджера. Шрифты встроены, поэтому всё работает без интернета.</li>
+        <li><strong>Сборка</strong> - один скрипт <code>build.sh</code> собирает весь модуль из исходников.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Проверено на</h2>
+      <ul>
+        <li>Poco F6 Pro, прошивка Xiaomi.eu (Android 16), SukiSU-Ultra и ReZygisk</li>
+        <li>Xiaomi Redmi Note 8T, прошивка InfinityX (Android 17), BakaSU и Zygisk Next (проверил <a href="https://github.com/LegacyFreeman">LegacyFreeman</a>)</li>
+      </ul>
+      <p>На других устройствах тоже должно работать, но они не проверялись.</p>
+    </section>
+
+    <p class="foot">Play Detach от <a href="https://github.com/nikakvo">Tears Burn</a>. Основано на <a href="https://github.com/j-hc/zygisk-detach">zygisk-detach</a> от <a href="https://github.com/j-hc">j-hc</a>. Русский перевод: <a href="https://github.com/LegacyFreeman">LegacyFreeman</a>. Apache License 2.0.</p>
   </main>
 
   <div class="toast" id="toast" role="status"></div>

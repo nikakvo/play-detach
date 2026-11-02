@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.2.0
+
+- Russian language: an EN / RU switch next to Help changes the whole module - the app, every window and message, the help page and the module description in the root manager. The choice is remembered; the first time the language follows the phone. Russian translation based on the work of LegacyFreeman
+- The installer shows its messages in the chosen language (or the phone's language)
+- Tested on Android 17 too: Xiaomi Redmi Note 8T with the InfinityX ROM, BakaSU and Zygisk Next (thanks to LegacyFreeman)
+- Clearer text in the Detach all confirmation when the search box is used
+
 ## v1.1.1
 
 - Automatic backup switch in the Back up and Restore windows, so it can be turned off without the command line

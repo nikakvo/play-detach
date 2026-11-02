@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Play Detach</title>
   <link rel="stylesheet" href="style.css">
+  <script src="i18n.js"></script>
   <script type="module" src="app.js"></script>
 </head>
 <body>
@@ -21,17 +22,21 @@
       </svg>
       <div class="title">
         <h1>Play Detach</h1>
-        <div class="sub" id="version">Zygisk module</div>
+        <div class="sub" id="version" data-i18n="zygisk_module">Zygisk module</div>
       </div>
-      <a class="help-btn" href="help.html">Help</a>
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="ru" aria-pressed="false">RU</button>
+      </div>
+      <a class="help-btn" href="help.html" data-i18n="help">Help</a>
     </div>
 
     <label class="search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
         <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
       </svg>
-      <input id="search" type="search" placeholder="Search apps or packages" autocomplete="off" spellcheck="false" aria-label="Search apps">
-      <button class="clear" id="clear" type="button" aria-label="Clear search" hidden>
+      <input id="search" type="search" placeholder="Search apps or packages" autocomplete="off" spellcheck="false" aria-label="Search apps" data-i18n-ph="search_placeholder">
+      <button class="clear" id="clear" type="button" aria-label="Clear search" data-i18n-aria="clear_search" hidden>
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
     </label>
@@ -39,57 +44,57 @@
     <div class="tabs" role="tablist">
       <button class="tab t-user" role="tab" data-tab="user" aria-selected="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/></svg>
-        <span class="n" id="n-user">0</span><span class="l">User apps</span>
+        <span class="n" id="n-user">0</span><span class="l" data-i18n="tab_user">User apps</span>
       </button>
       <button class="tab t-detached" role="tab" data-tab="detached" aria-selected="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="8" width="10" height="8" rx="2.5"/><path d="M12.5 10h3M12.5 14h3"/><rect x="18" y="6" width="3.5" height="12" rx="1.5"/></svg>
-        <span class="n" id="n-detached">0</span><span class="l">Detached</span>
+        <span class="n" id="n-detached">0</span><span class="l" data-i18n="tab_detached">Detached</span>
       </button>
       <button class="tab t-system" role="tab" data-tab="system" aria-selected="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l7.5 3v5.2c0 4.3-3.1 7.6-7.5 8.8-4.4-1.2-7.5-4.5-7.5-8.8V6.5z"/><path d="M9 12l2 2 4-4"/></svg>
-        <span class="n" id="n-system">0</span><span class="l">System apps</span>
+        <span class="n" id="n-system">0</span><span class="l" data-i18n="tab_system">System apps</span>
       </button>
     </div>
 
     <div class="actions-bar user" id="user-actions" hidden>
       <button class="act toggle" id="side" type="button" aria-pressed="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h7l4 4V20.5H7z"/><path d="M12.5 10v6M10 13.5l2.5 2.5 2.5-2.5"/></svg>
-        <span>Sideloaded</span><b class="cnt" id="n-side">0</b>
+        <span data-i18n="sideloaded">Sideloaded</span><b class="cnt" id="n-side">0</b>
       </button>
       <button class="act" id="select" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>
-        <span>Select</span>
+        <span data-i18n="select">Select</span>
       </button>
       <button class="act" id="detach-shown" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="8" width="10" height="8" rx="2.5"/><path d="M12.5 10h3M12.5 14h3"/><rect x="18" y="6" width="3.5" height="12" rx="1.5"/></svg>
-        <span>Detach all</span>
+        <span data-i18n="detach_all">Detach all</span>
       </button>
     </div>
 
     <div class="actions-bar" id="actions" hidden>
       <button class="act" id="backup" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14"/></svg>
-        <span>Back up</span>
+        <span data-i18n="back_up">Back up</span>
       </button>
       <button class="act" id="restore" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4.5v4h4"/></svg>
-        <span>Restore</span>
+        <span data-i18n="restore">Restore</span>
       </button>
       <button class="act danger" id="reattach-all" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 14.5l5-5"/><path d="M11 6.5l1.2-1.2a4 4 0 0 1 5.7 5.7L16.6 12.3M13 17.5l-1.2 1.2a4 4 0 0 1-5.7-5.7l1.2-1.2"/></svg>
-        <span>Re-attach all</span>
+        <span data-i18n="reattach_all">Re-attach all</span>
       </button>
     </div>
 
     <div class="status" id="status" data-state="idle">
-      <span class="dot"></span><span class="text" id="status-text">Loading...</span>
+      <span class="dot"></span><span class="text" id="status-text" data-i18n="loading">Loading...</span>
     </div>
   </header>
 
   <main>
     <div class="note" id="ghost-note" hidden>
       <span id="ghost-text"></span>
-      <button class="note-btn" id="ghost-remove" type="button">Remove</button>
+      <button class="note-btn" id="ghost-remove" type="button" data-i18n="remove">Remove</button>
     </div>
     <div class="list" id="list" aria-live="polite">
       <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
@@ -99,15 +104,15 @@
 
   <div class="selbar" id="selbar" hidden>
     <div class="selbar-top">
-      <button class="sel-x" id="sel-close" type="button" aria-label="Stop selecting">
+      <button class="sel-x" id="sel-close" type="button" aria-label="Stop selecting" data-i18n-aria="stop_selecting">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
       <span class="sel-count" id="sel-count">0 selected</span>
-      <button class="sel-all" id="sel-all" type="button">Select all</button>
+      <button class="sel-all" id="sel-all" type="button" data-i18n="select_all">Select all</button>
     </div>
     <div class="selbar-btns">
-      <button class="btn primary" id="sel-detach" type="button">Detach</button>
-      <button class="btn ghost" id="sel-attach" type="button">Re-attach</button>
+      <button class="btn primary" id="sel-detach" type="button" data-i18n="detach">Detach</button>
+      <button class="btn ghost" id="sel-attach" type="button" data-i18n="reattach">Re-attach</button>
     </div>
   </div>
 
@@ -126,19 +131,19 @@
       <div class="menu">
         <button class="menu-item" id="app-store" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4.5v15l13-7.5z"/></svg>
-          <span><strong>Open in Play Store</strong><small>A detached app shows no Update button there</small></span>
+          <span><strong data-i18n="menu_store">Open in Play Store</strong><small data-i18n="menu_store_hint">A detached app shows no Update button there</small></span>
         </button>
         <button class="menu-item" id="app-select" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>
-          <span><strong>Select several apps</strong><small>Detach or re-attach many at once</small></span>
+          <span><strong data-i18n="menu_select">Select several apps</strong><small data-i18n="menu_select_hint">Detach or re-attach many at once</small></span>
         </button>
         <button class="menu-item" id="app-copy" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
-          <span><strong>Copy package name</strong></span>
+          <span><strong data-i18n="menu_copy">Copy package name</strong></span>
         </button>
       </div>
       <div class="actions">
-        <button class="btn ghost" id="app-close" type="button">Close</button>
+        <button class="btn ghost" id="app-close" type="button" data-i18n="close">Close</button>
       </div>
     </div>
   </div>
@@ -149,17 +154,17 @@
       <div class="crumbs" id="picker-path"></div>
       <div class="picker-list" id="picker-list"></div>
       <div class="picker-save" id="picker-save">
-        <label for="picker-name">File name</label>
+        <label for="picker-name" data-i18n="file_name">File name</label>
         <input id="picker-name" type="text" spellcheck="false" autocomplete="off" autocapitalize="off">
-        <div class="picker-warn" id="picker-warn" hidden>A file with this name is already here and will be replaced.</div>
+        <div class="picker-warn" id="picker-warn" data-i18n="file_exists" hidden>A file with this name is already here and will be replaced.</div>
       </div>
       <label class="auto-row" id="auto-row" hidden>
-        <span><strong>Automatic backup</strong><small>Saves play-detach-auto.txt to Play-Detach after every change</small></span>
+        <span><strong data-i18n="auto_backup">Automatic backup</strong><small data-i18n="auto_backup_hint">Saves play-detach-auto.txt to Play-Detach after every change</small></span>
         <span class="switch"><input type="checkbox" role="switch" id="auto-switch"><span class="track"></span></span>
       </label>
       <div class="actions">
-        <button class="btn ghost" id="picker-cancel" type="button">Cancel</button>
-        <button class="btn primary" id="picker-ok" type="button">Save here</button>
+        <button class="btn ghost" id="picker-cancel" type="button" data-i18n="cancel">Cancel</button>
+        <button class="btn primary" id="picker-ok" type="button" data-i18n="save_here">Save here</button>
       </div>
     </div>
   </div>
@@ -169,7 +174,7 @@
       <h2 id="confirm-title">Re-attach all apps?</h2>
       <p id="confirm-text">The Play Store will see every detached app again and offer updates for them.</p>
       <div class="actions">
-        <button class="btn ghost" id="confirm-no" type="button">Cancel</button>
+        <button class="btn ghost" id="confirm-no" type="button" data-i18n="cancel">Cancel</button>
         <button class="btn primary" id="confirm-yes" type="button">Re-attach all</button>
       </div>
     </div>

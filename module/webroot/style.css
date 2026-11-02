@@ -125,6 +125,29 @@ button, input { font: inherit; color: inherit; }
   flex: none;
 }
 .icon-btn svg { width: 20px; height: 20px; }
+/* EN / RU switch next to Help */
+.lang {
+  margin-left: auto;
+  flex: none;
+  display: flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+.lang button {
+  border: 0;
+  background: none;
+  color: var(--faint);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  padding: 6px 9px;
+  border-radius: 999px;
+}
+.lang button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+.lang + .help-btn, .lang + .icon-btn { margin-left: 0; }
 .help-btn {
   margin-left: auto;
   flex: none;
@@ -756,3 +779,27 @@ main { padding: 4px 14px 120px; }
 }
 /* The count already marks the Sideloaded filter; no room for an icon too */
 #side svg { display: none; }
+
+/* Narrow screens: keep the title, the language switch and Help on one line */
+@media (max-width: 400px) {
+  .appbar { gap: 8px; }
+  .title h1 { font-size: 21px; }
+  .help-btn { padding: 8px 12px; font-size: 13px; }
+}
+@media (max-width: 370px) {
+  .logo { width: 36px; height: 36px; }
+  .title h1 { font-size: 19px; }
+  .lang button { padding: 6px 7px; }
+}
+.title h1 { white-space: nowrap; }
+
+/* Russian words are longer */
+html[lang="ru"] .tab .l { font-size: 11px; letter-spacing: -0.01em; }
+html[lang="ru"] .act { font-size: 12px; }
+@media (max-width: 430px) {
+  html[lang="ru"] .act svg { display: none; }
+}
+@media (max-width: 380px) {
+  html[lang="ru"] .act { font-size: 11px; padding: 9px 2px; gap: 3px; }
+  html[lang="ru"] .act .cnt { padding: 0 4px; }
+}
