@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.1.0
+
+- New look for the WebUI: the User apps, Detached and System apps tabs are coloured cards that always fit the screen, and the status line no longer overlaps the list when you scroll
+- Back up, Restore and Re-attach all now sit right under the tabs in the Detached tab, no more scrolling to the bottom
+- Own backup folder: the installer creates Play-Detach in internal storage and Back up / Restore open it directly. If you delete it, Download is used instead
+- Automatic backup: after every change the list is saved to Play-Detach/play-detach-auto.txt and shown first in Restore. An empty list never replaces it. `play-detach autobackup off` turns it off
+- Sideloaded apps (APK files, other stores, patched apps) are marked, and a Sideloaded filter in User apps shows only them
+- Detach all detaches every app in the list you see, for example all sideloaded apps or all search results, after you confirm
+- Select several apps and detach or re-attach them at once: tap Select, or long-press an app
+- Long-press an app for its menu: open it in the Play Store, start selecting, or copy the package name
+- A note in the Detached tab tells you when apps on the list are no longer installed, with a button to remove them
+- The help button now says Help
+
 ## v1.0.3
 
 - The WebUI opens reliably on a quick reopen: the app list, the status line and the version no longer stay stuck on "Loading..." until the page is opened again

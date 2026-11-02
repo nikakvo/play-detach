@@ -98,14 +98,18 @@ const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));
 // State
 // ---------------------------------------------------------------------------
 
-/** @type {Map<string, {pkg: string, label: string, system: boolean, installed: boolean, detached: boolean}>} */
+/** @type {Map<string, {pkg: string, label: string, system: boolean, installed: boolean, detached: boolean, sideloaded: boolean}>} */
 const apps = new Map();
 let tab = "user";
 let query = "";
+let sideKnown = false; // installer info loaded
+let sideOnly = false; // User apps: show only sideloaded apps
+let selecting = false;
+const selected = new Set();
 
 function addApp(pkg, system) {
   if (!PKG_RE.test(pkg) || apps.has(pkg)) return;
-  apps.set(pkg, { pkg, label: pkg, system, installed: true, detached: false });
+  apps.set(pkg, { pkg, label: pkg, system, installed: true, detached: false, sideloaded: false });
 }
 
 async function loadPackages() {
@@ -129,6 +133,22 @@ async function loadPackages() {
     lines(user.stdout).forEach((l) => addApp(l.replace(/^package:/, ""), false));
     lines(system.stdout).forEach((l) => addApp(l.replace(/^package:/, ""), true));
   }
+}
+
+// Apps not installed by the Play Store (APK files, other stores, patched apps).
+// The Play Store can still replace them with its own version.
+async function loadInstallers() {
+  const res = await exec("pm list packages -3 -i");
+  if (res.errno !== 0) return false;
+  let seen = 0;
+  for (const l of lines(res.stdout)) {
+    const m = l.match(/^package:(\S+)\s+installer=(\S*)/);
+    if (!m) continue;
+    seen++;
+    const app = apps.get(m[1]);
+    if (app && !app.system) app.sideloaded = m[2] !== "com.android.vending";
+  }
+  return seen > 0;
 }
 
 async function loadDetached() {
@@ -192,6 +212,11 @@ function makeRow(app) {
     b.className = "badge";
     b.textContent = "Not installed";
     name.append(b);
+  } else if (app.sideloaded) {
+    const b = document.createElement("span");
+    b.className = "badge side";
+    b.textContent = "Sideloaded";
+    name.append(b);
   }
   meta.append(name, pkg);
 
@@ -207,8 +232,57 @@ function makeRow(app) {
   track.className = "track";
   sw.append(input, track);
 
-  row.append(makeIcon(app), meta, sw);
+  const check = document.createElement("span");
+  check.className = "check";
+  check.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 12.5l3.5 3.5 7.5-8"/></svg>';
+  const ctl = document.createElement("span");
+  ctl.className = "ctl";
+  ctl.append(sw, check);
+
+  if (selected.has(app.pkg)) row.classList.add("sel");
+  row.append(makeIcon(app), meta, ctl);
+  addPress(row, app);
   return row;
+}
+
+// Long press opens the app menu (or selects while selecting). In selection
+// mode a tap selects instead of switching.
+function addPress(row, app) {
+  let timer = null, sx = 0, sy = 0, fired = false;
+  const cancel = () => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+  };
+  row.addEventListener("pointerdown", (e) => {
+    fired = false;
+    sx = e.clientX;
+    sy = e.clientY;
+    cancel();
+    timer = setTimeout(() => {
+      timer = null;
+      fired = true;
+      if (navigator.vibrate) navigator.vibrate(12);
+      if (selecting) toggleSelect(app, row);
+      else openAppSheet(app);
+    }, 480);
+  });
+  row.addEventListener("pointermove", (e) => {
+    if (Math.abs(e.clientX - sx) > 10 || Math.abs(e.clientY - sy) > 10) cancel();
+  });
+  ["pointerup", "pointercancel", "pointerleave"].forEach((ev) => row.addEventListener(ev, cancel));
+  row.addEventListener("contextmenu", (e) => e.preventDefault());
+  row.addEventListener("click", (e) => {
+    if (fired) {
+      e.preventDefault();
+      fired = false;
+      return;
+    }
+    if (selecting) {
+      e.preventDefault();
+      toggleSelect(app, row);
+    }
+  });
 }
 
 function visibleApps() {
@@ -218,6 +292,7 @@ function visibleApps() {
       if (tab === "detached" && !a.detached) return false;
       if (tab === "user" && a.system) return false;
       if (tab === "system" && !a.system) return false;
+      if (tab === "user" && sideOnly && !a.sideloaded) return false;
       if (q && !a.label.toLowerCase().includes(q) && !a.pkg.toLowerCase().includes(q)) return false;
       return true;
     })
@@ -240,6 +315,8 @@ function emptyState() {
       </svg>
       <strong>No detached apps yet</strong>
       <span>Turn on the switch next to an app to stop Play Store updates for it.</span>`;
+  } else if (tab === "user" && sideOnly) {
+    div.innerHTML = "<strong>No sideloaded apps</strong><span>Every user app here was installed by the Play Store.</span>";
   } else {
     div.innerHTML = "<strong>No apps here</strong>";
   }
@@ -252,9 +329,11 @@ function render() {
   if (items.length === 0) frag.append(emptyState());
   else items.forEach((a) => frag.append(makeRow(a)));
   listEl.replaceChildren(frag);
-  $("foot").hidden = !(tab === "detached" && !query);
-  $("reattach-all").hidden = items.length === 0;
+  $("actions").hidden = tab !== "detached";
+  $("user-actions").hidden = tab !== "user";
+  document.body.dataset.tab = tab;
   updateCounts();
+  updateSelbar();
 }
 
 function updateCounts() {
@@ -270,6 +349,19 @@ function updateCounts() {
   $("n-detached").textContent = detached;
   // Never let an empty list overwrite a good backup.
   $("backup").disabled = detached === 0;
+  $("reattach-all").disabled = detached === 0;
+
+  let side = 0, ghosts = 0;
+  for (const a of apps.values()) {
+    if (a.installed && a.sideloaded) side++;
+    if (!a.installed && a.detached) ghosts++;
+  }
+  $("n-side").textContent = side;
+  $("side").hidden = !sideKnown;
+  $("side").setAttribute("aria-pressed", String(sideOnly));
+  $("user-actions").classList.toggle("two", !sideKnown);
+  $("ghost-note").hidden = !(tab === "detached" && ghosts > 0 && !selecting);
+  $("ghost-text").textContent = `${ghosts} ${ghosts === 1 ? "app on the list is" : "apps on the list are"} not installed.`;
   return detached;
 }
 
@@ -328,6 +420,135 @@ async function reattachAll() {
 }
 
 // ---------------------------------------------------------------------------
+// Several apps at once
+// ---------------------------------------------------------------------------
+
+const plural = (n) => `${n} ${n === 1 ? "app" : "apps"}`;
+
+// Adds or removes many packages with one command and one Play Store restart.
+async function bulk(pkgs, on) {
+  if (pkgs.length === 0) return true;
+  const res = await exec(`${CLI} ${on ? "add" : "remove"} ${pkgs.join(" ")}`);
+  if (res.errno !== 0) {
+    toast(res.stderr.trim() || "Could not change the list", true);
+    return false;
+  }
+  for (const pkg of pkgs) {
+    const a = apps.get(pkg);
+    if (!a) continue;
+    if (!on && !a.installed) apps.delete(pkg);
+    else a.detached = on;
+  }
+  return true;
+}
+
+function startSelect(app) {
+  selecting = true;
+  selected.clear();
+  if (app) selected.add(app.pkg);
+  document.body.classList.add("selecting");
+  render();
+}
+
+function stopSelect() {
+  selecting = false;
+  selected.clear();
+  document.body.classList.remove("selecting");
+  render();
+}
+
+function toggleSelect(app, row) {
+  if (selected.has(app.pkg)) selected.delete(app.pkg);
+  else selected.add(app.pkg);
+  row.classList.toggle("sel", selected.has(app.pkg));
+  updateSelbar();
+}
+
+function updateSelbar() {
+  $("selbar").hidden = !selecting;
+  if (!selecting) return;
+  const shown = visibleApps();
+  const all = shown.length > 0 && shown.every((a) => selected.has(a.pkg));
+  $("sel-count").textContent = `${selected.size} selected`;
+  $("sel-all").textContent = all ? "Select none" : "Select all";
+  let canOn = 0, canOff = 0;
+  for (const pkg of selected) {
+    const a = apps.get(pkg);
+    if (!a) continue;
+    if (a.detached) canOff++;
+    else canOn++;
+  }
+  $("sel-detach").disabled = canOn === 0;
+  $("sel-attach").disabled = canOff === 0;
+}
+
+async function applySelected(on) {
+  const pkgs = [...selected].filter((p) => apps.has(p) && apps.get(p).detached !== on);
+  if (!(await bulk(pkgs, on))) return;
+  stopSelect();
+  refreshStatus();
+  toast(on ? `${plural(pkgs.length)} detached` : `${plural(pkgs.length)} re-attached`);
+}
+
+async function detachShown() {
+  const pkgs = visibleApps().filter((a) => !a.detached).map((a) => a.pkg);
+  if (!(await bulk(pkgs, true))) return;
+  render();
+  refreshStatus();
+  toast(`${plural(pkgs.length)} detached`);
+}
+
+async function removeGhosts() {
+  const pkgs = [...apps.values()].filter((a) => !a.installed && a.detached).map((a) => a.pkg);
+  if (!(await bulk(pkgs, false))) return;
+  render();
+  refreshStatus();
+  toast(`${plural(pkgs.length)} removed from the list`);
+}
+
+// ---------------------------------------------------------------------------
+// App menu (long press)
+// ---------------------------------------------------------------------------
+
+let sheetApp = null;
+
+function openAppSheet(app) {
+  sheetApp = app;
+  $("app-title").textContent = app.label;
+  $("app-pkg").textContent = app.pkg;
+  $("app-ico").replaceChildren(makeIcon(app));
+  $("appsheet").hidden = false;
+}
+
+async function openInStore(app) {
+  $("appsheet").hidden = true;
+  const res = await exec(
+    `am start -a android.intent.action.VIEW -d ${sq("market://details?id=" + app.pkg)} -p com.android.vending`
+  );
+  if (res.errno !== 0 || /Error/.test(res.stdout + res.stderr)) toast("Could not open the Play Store", true);
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.append(ta);
+    ta.select();
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch {}
+    ta.remove();
+    return ok;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Backup / restore with a built-in folder browser
 // ---------------------------------------------------------------------------
 
@@ -342,17 +563,16 @@ const FILE_ICON =
 const UP_ICON =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
 
-function lastDir() {
-  try {
-    const d = localStorage.getItem("pd-backup-dir");
-    if (d && d.startsWith(STORAGE)) return d;
-  } catch {}
-  return `${STORAGE}/Download`;
-}
-function rememberDir(dir) {
-  try {
-    localStorage.setItem("pd-backup-dir", dir);
-  } catch {}
+const BACKUP_DIR = `${STORAGE}/Play-Detach`;
+const AUTO_NAME = "play-detach-auto.txt";
+
+// The Play-Detach folder the installer creates; Download if it was deleted.
+async function startDir() {
+  const res = await exec(
+    `for d in ${sq(BACKUP_DIR)} ${sq(STORAGE + "/Download")}; do [ -d "$d" ] && { echo "$d"; break; }; done`
+  );
+  const d = res.stdout.trim();
+  return d.startsWith(STORAGE) ? d : STORAGE;
 }
 
 const picker = { mode: "save", dir: STORAGE, files: new Set() };
@@ -424,9 +644,20 @@ async function openDir(dir) {
     frag.append(entryButton(FOLDER_ICON, d, "folder", () => openDir(`${dir}/${d}`)));
   }
   if (picker.mode === "restore") {
-    for (const f of data.files) {
-      if (f.startsWith(".") || !f.toLowerCase().endsWith(".txt")) continue;
-      frag.append(entryButton(FILE_ICON, f, "file", () => askRestore(`${dir}/${f}`)));
+    // The automatic backup first, marked as such
+    const files = data.files.filter((f) => !f.startsWith(".") && f.toLowerCase().endsWith(".txt"));
+    files.sort((x, y) => (y === AUTO_NAME) - (x === AUTO_NAME));
+    for (const f of files) {
+      const auto = f === AUTO_NAME;
+      const b = entryButton(FILE_ICON, auto ? "Automatic backup" : f, auto ? "file auto" : "file", () =>
+        askRestore(`${dir}/${f}`)
+      );
+      if (auto) {
+        const small = document.createElement("small");
+        small.textContent = "saved after every change";
+        b.querySelector("span").append(small);
+      }
+      frag.append(b);
     }
   }
   if (!frag.childElementCount || (frag.childElementCount === 1 && dir !== STORAGE)) {
@@ -465,7 +696,7 @@ function openPicker(mode) {
     $("picker-name").value = `play-detach-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.txt`;
   }
   $("picker").hidden = false;
-  openDir(lastDir());
+  startDir().then(openDir);
 }
 
 async function saveBackup() {
@@ -478,7 +709,6 @@ async function saveBackup() {
     toast(res.stderr.trim() || "Could not save the backup", true);
     return;
   }
-  rememberDir(picker.dir);
   const n = updateCounts();
   toast(`Saved ${n} ${n === 1 ? "app" : "apps"} to ${niceDir(file)}`);
 }
@@ -501,7 +731,6 @@ async function restore(file) {
     toast(res.stderr.trim().replace(STORAGE, "Internal storage") || "Could not restore the backup", true);
     return;
   }
-  rememberDir(file.slice(0, file.lastIndexOf("/")));
   for (const [pkg, a] of apps) {
     if (!a.installed) apps.delete(pkg);
     else a.detached = false;
@@ -580,6 +809,11 @@ function setupUi() {
 
   document.querySelectorAll(".tab").forEach((btn) =>
     btn.addEventListener("click", () => {
+      if (selecting) {
+        selecting = false;
+        selected.clear();
+        document.body.classList.remove("selecting");
+      }
       tab = btn.dataset.tab;
       document.querySelectorAll(".tab").forEach((b) => b.setAttribute("aria-selected", String(b === btn)));
       render();
@@ -601,6 +835,61 @@ function setupUi() {
   );
   confirmAsk = ask;
   $("backup").addEventListener("click", () => openPicker("save"));
+
+  $("side").addEventListener("click", () => {
+    sideOnly = !sideOnly;
+    render();
+    window.scrollTo({ top: 0 });
+  });
+  $("select").addEventListener("click", () => (selecting ? stopSelect() : startSelect(null)));
+  $("detach-shown").addEventListener("click", () => {
+    const n = visibleApps().filter((a) => !a.detached).length;
+    if (n === 0) {
+      toast("Every app in this list is already detached");
+      return;
+    }
+    const what = query ? "that match your search" : sideOnly ? "sideloaded apps" : "user apps";
+    ask(
+      `Detach ${plural(n)}?`,
+      `All ${what} that are not detached yet (${n}) stop getting Play Store updates. You can re-attach them one by one or with Re-attach all.`,
+      "Detach",
+      detachShown
+    );
+  });
+  $("ghost-remove").addEventListener("click", () => {
+    const n = [...apps.values()].filter((a) => !a.installed && a.detached).length;
+    ask(
+      "Remove apps that are not installed?",
+      `${plural(n)} go off the list. Keep them if you will install them again, for example a patched app you are reinstalling: they stay detached then.`,
+      "Remove",
+      removeGhosts
+    );
+  });
+
+  $("sel-close").addEventListener("click", stopSelect);
+  $("sel-all").addEventListener("click", () => {
+    const shown = visibleApps();
+    const all = shown.length > 0 && shown.every((a) => selected.has(a.pkg));
+    shown.forEach((a) => (all ? selected.delete(a.pkg) : selected.add(a.pkg)));
+    render();
+  });
+  $("sel-detach").addEventListener("click", () => applySelected(true));
+  $("sel-attach").addEventListener("click", () => applySelected(false));
+
+  const sheet = $("appsheet");
+  $("app-close").addEventListener("click", () => (sheet.hidden = true));
+  sheet.addEventListener("click", (e) => {
+    if (e.target === sheet) sheet.hidden = true;
+  });
+  $("app-store").addEventListener("click", () => openInStore(sheetApp));
+  $("app-select").addEventListener("click", () => {
+    sheet.hidden = true;
+    startSelect(sheetApp);
+  });
+  $("app-copy").addEventListener("click", async () => {
+    sheet.hidden = true;
+    toast((await copyText(sheetApp.pkg)) ? "Package name copied" : "Could not copy", false);
+  });
   $("restore").addEventListener("click", () => openPicker("restore"));
   const pickerEl = $("picker");
   $("picker-cancel").addEventListener("click", () => (pickerEl.hidden = true));
@@ -643,6 +932,12 @@ async function main() {
   }
   render();
   refreshStatus();
+
+  // Installer info comes a moment later; the list is usable meanwhile.
+  if (await loadInstallers()) {
+    sideKnown = true;
+    render();
+  }
 }
 
 main();

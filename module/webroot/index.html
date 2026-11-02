@@ -23,11 +23,7 @@
         <h1>Play Detach</h1>
         <div class="sub" id="version">Zygisk module</div>
       </div>
-      <a class="icon-btn" href="help.html" aria-label="Help">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><circle cx="12" cy="17" r="0.6" fill="currentColor"/>
-        </svg>
-      </a>
+      <a class="help-btn" href="help.html">Help</a>
     </div>
 
     <label class="search">
@@ -41,9 +37,48 @@
     </label>
 
     <div class="tabs" role="tablist">
-      <button class="tab" role="tab" data-tab="user" aria-selected="true">User apps <span class="n" id="n-user">0</span></button>
-      <button class="tab" role="tab" data-tab="detached" aria-selected="false">Detached <span class="n" id="n-detached">0</span></button>
-      <button class="tab" role="tab" data-tab="system" aria-selected="false">System apps <span class="n" id="n-system">0</span></button>
+      <button class="tab t-user" role="tab" data-tab="user" aria-selected="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/></svg>
+        <span class="n" id="n-user">0</span><span class="l">User apps</span>
+      </button>
+      <button class="tab t-detached" role="tab" data-tab="detached" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="8" width="10" height="8" rx="2.5"/><path d="M12.5 10h3M12.5 14h3"/><rect x="18" y="6" width="3.5" height="12" rx="1.5"/></svg>
+        <span class="n" id="n-detached">0</span><span class="l">Detached</span>
+      </button>
+      <button class="tab t-system" role="tab" data-tab="system" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l7.5 3v5.2c0 4.3-3.1 7.6-7.5 8.8-4.4-1.2-7.5-4.5-7.5-8.8V6.5z"/><path d="M9 12l2 2 4-4"/></svg>
+        <span class="n" id="n-system">0</span><span class="l">System apps</span>
+      </button>
+    </div>
+
+    <div class="actions-bar user" id="user-actions" hidden>
+      <button class="act toggle" id="side" type="button" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3.5h7l4 4V20.5H7z"/><path d="M12.5 10v6M10 13.5l2.5 2.5 2.5-2.5"/></svg>
+        <span>Sideloaded</span><b class="cnt" id="n-side">0</b>
+      </button>
+      <button class="act" id="select" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>
+        <span>Select</span>
+      </button>
+      <button class="act" id="detach-shown" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="8" width="10" height="8" rx="2.5"/><path d="M12.5 10h3M12.5 14h3"/><rect x="18" y="6" width="3.5" height="12" rx="1.5"/></svg>
+        <span>Detach all</span>
+      </button>
+    </div>
+
+    <div class="actions-bar" id="actions" hidden>
+      <button class="act" id="backup" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14"/></svg>
+        <span>Back up</span>
+      </button>
+      <button class="act" id="restore" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4.5v4h4"/></svg>
+        <span>Restore</span>
+      </button>
+      <button class="act danger" id="reattach-all" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 14.5l5-5"/><path d="M11 6.5l1.2-1.2a4 4 0 0 1 5.7 5.7L16.6 12.3M13 17.5l-1.2 1.2a4 4 0 0 1-5.7-5.7l1.2-1.2"/></svg>
+        <span>Re-attach all</span>
+      </button>
     </div>
 
     <div class="status" id="status" data-state="idle">
@@ -52,18 +87,60 @@
   </header>
 
   <main>
+    <div class="note" id="ghost-note" hidden>
+      <span id="ghost-text"></span>
+      <button class="note-btn" id="ghost-remove" type="button">Remove</button>
+    </div>
     <div class="list" id="list" aria-live="polite">
       <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
       <div class="skeleton"></div><div class="skeleton"></div>
     </div>
-    <div class="list-foot" id="foot" hidden>
-      <button class="text-btn" id="backup" type="button">Back up list</button>
-      <button class="text-btn" id="restore" type="button">Restore backup</button>
-      <button class="text-btn" id="reattach-all" type="button">Re-attach all</button>
-    </div>
   </main>
 
+  <div class="selbar" id="selbar" hidden>
+    <div class="selbar-top">
+      <button class="sel-x" id="sel-close" type="button" aria-label="Stop selecting">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+      <span class="sel-count" id="sel-count">0 selected</span>
+      <button class="sel-all" id="sel-all" type="button">Select all</button>
+    </div>
+    <div class="selbar-btns">
+      <button class="btn primary" id="sel-detach" type="button">Detach</button>
+      <button class="btn ghost" id="sel-attach" type="button">Re-attach</button>
+    </div>
+  </div>
+
   <div class="toast" id="toast" role="status"></div>
+
+  <div class="sheet-backdrop" id="appsheet" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="app-title">
+      <div class="app-head">
+        <div id="app-ico"></div>
+        <div class="meta">
+          <h2 id="app-title">App</h2>
+          <div class="pkg" id="app-pkg"></div>
+        </div>
+      </div>
+      <div class="menu">
+        <button class="menu-item" id="app-store" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4.5v15l13-7.5z"/></svg>
+          <span><strong>Open in Play Store</strong><small>A detached app shows no Update button there</small></span>
+        </button>
+        <button class="menu-item" id="app-select" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>
+          <span><strong>Select several apps</strong><small>Detach or re-attach many at once</small></span>
+        </button>
+        <button class="menu-item" id="app-copy" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+          <span><strong>Copy package name</strong></span>
+        </button>
+      </div>
+      <div class="actions">
+        <button class="btn ghost" id="app-close" type="button">Close</button>
+      </div>
+    </div>
+  </div>
 
   <div class="sheet-backdrop" id="picker" hidden>
     <div class="sheet picker" role="dialog" aria-modal="true" aria-labelledby="picker-title">

@@ -10,9 +10,11 @@ The Play Store updates apps on its own, even when auto-update is turned off for 
 
 - WebUI with app icons and names, search, and tabs for user, system and detached apps
 - One switch per app, changes apply right away without a reboot
+- Sideloaded apps (APK files, other stores, patched apps) are marked and can be detached all at once
+- Select several apps to detach or re-attach them together; long-press an app to open it in the Play Store
 - Status line that shows whether the module is active in the Play Store
 - Command line tool for terminals, plus a short `play-detach` command in Termux
-- Backup and restore of the list, with a built-in folder browser to pick where it is saved
+- Backup and restore of the list in its own Play-Detach folder in internal storage, plus an automatic backup after every change
 - Optional `detach.txt` in the module zip to detach apps at install time
 - Works only inside the Play Store process, nothing else is touched
 
@@ -37,11 +39,14 @@ su -c '/data/adb/modules/play-detach/play-detach remove com.example.app'
 su -c '/data/adb/modules/play-detach/play-detach clear'
 su -c '/data/adb/modules/play-detach/play-detach status'
 su -c '/data/adb/modules/play-detach/play-detach backup'
-su -c '/data/adb/modules/play-detach/play-detach restore /sdcard/Download/play-detach-backup.txt'
+su -c '/data/adb/modules/play-detach/play-detach restore /sdcard/Play-Detach/play-detach-backup.txt'
+su -c '/data/adb/modules/play-detach/play-detach autobackup off'
 su -c '/data/adb/modules/play-detach/play-detach help'
 ```
 
 The list is stored in `/data/adb/play-detach/detach.list`, one package per line. Each time the Play Store starts, the module overwrites a one-line `status` file in the same folder, which `play-detach status` and the WebUI use to show whether the current list is active.
+
+Backups go to `/sdcard/Play-Detach`, which the installer creates (or to `Download` if that folder was deleted). After every change the list is also saved there as `play-detach-auto.txt`.
 
 To check that the module works:
 

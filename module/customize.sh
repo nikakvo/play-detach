@@ -93,6 +93,25 @@ if [ -f "$MODPATH/detach.txt" ]; then
     rm -f "$MODPATH/detach.txt"
 fi
 
+# Own folder for backups in internal storage (/sdcard/Play-Detach), with the
+# same owner, mode and SELinux label as Download so file managers can open it.
+# If the user deletes it later, backups go to Download instead.
+STORAGE=/data/media/0
+if [ -d "$STORAGE/Download" ]; then
+    BDIR="$STORAGE/Play-Detach"
+    if [ ! -d "$BDIR" ] && mkdir "$BDIR" 2>/dev/null; then
+        chown "$(stat -c %u:%g "$STORAGE/Download")" "$BDIR" 2>/dev/null
+        chmod "$(stat -c %a "$STORAGE/Download")" "$BDIR" 2>/dev/null
+        ctx=$(stat -c %C "$STORAGE/Download" 2>/dev/null) && [ -n "$ctx" ] && chcon "$ctx" "$BDIR" 2>/dev/null
+        ui_print "- Backup folder created: Play-Detach"
+    fi
+    # First automatic backup of an existing list
+    if [ -d "$BDIR" ] && [ -s "$DATA_DIR/detach.list" ] && [ ! -f "$DATA_DIR/no-auto-backup" ]; then
+        "$MODPATH/play-detach" backup "$BDIR/play-detach-auto.txt" >/dev/null 2>&1 &&
+            ui_print "- Detached apps saved to Play-Detach/play-detach-auto.txt"
+    fi
+fi
+
 if [ -n "$KSU" ] || [ -n "$APATCH" ]; then
     ui_print "- A Zygisk implementation (e.g. ReZygisk) is required"
 else

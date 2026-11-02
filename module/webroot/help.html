@@ -42,12 +42,35 @@
         <li>Turn on the switch next to it. The change applies right away and the Play Store is restarted, no reboot needed.</li>
         <li>The <strong>Detached</strong> tab lists every detached app. Turn a switch off to let the Play Store see that app again.</li>
       </ol>
-      <p>Apps marked <strong>Not installed</strong> are still on your list but no longer on the phone. Turn them off to remove them from the list.</p>
+      <p>Apps marked <strong>Not installed</strong> are still on your list but no longer on the phone. They stay detached, so a patched app you reinstall is protected right away. To clear them out, tap <strong>Remove</strong> in the note at the top of the Detached tab, or turn them off one by one.</p>
+    </section>
+
+    <section>
+      <h2>Sideloaded apps</h2>
+      <p>Apps marked <strong>Sideloaded</strong> were not installed by the Play Store: APK files, other stores, patched apps. The Play Store can still replace them with its own version and undo a patch, so these are the apps you usually want to detach.</p>
+      <p>In <strong>User apps</strong>, tap <strong>Sideloaded</strong> to show only them, then <strong>Detach all</strong> to detach every one of them with one tap. <strong>Detach all</strong> always works on the apps in the list you see, so it also works together with the search box. You are asked before anything changes.</p>
+    </section>
+
+    <section>
+      <h2>Several apps at once</h2>
+      <p>Tap <strong>Select</strong> in User apps, or long-press any app and choose <strong>Select several apps</strong>. Tap apps to mark them, then <strong>Detach</strong> or <strong>Re-attach</strong> in the bar at the bottom. <strong>Select all</strong> marks every app in the current list. Tap the X to stop selecting.</p>
+    </section>
+
+    <section>
+      <h2>App menu</h2>
+      <p>Long-press an app to open its menu:</p>
+      <ul>
+        <li><strong>Open in Play Store</strong> - opens the app's page, an easy way to check that a detached app no longer shows an Update button.</li>
+        <li><strong>Select several apps</strong> - starts selecting with this app already marked.</li>
+        <li><strong>Copy package name</strong> - for the command line or a <code>detach.txt</code>.</li>
+      </ul>
     </section>
 
     <section>
       <h2>Backup and restore</h2>
-      <p>Open the <strong>Detached</strong> tab. <strong>Back up list</strong> opens your internal storage: pick a folder, change the file name if you like and tap <strong>Save here</strong>. <strong>Restore backup</strong> opens the same browser: go to the folder and tap the backup file.</p>
+      <p>The module keeps its backups in its own folder, <strong>Play-Detach</strong> in internal storage (<code>/sdcard/Play-Detach</code>), created when the module is installed. If you delete that folder, backups go to <strong>Download</strong> instead; installing the module again creates the folder again.</p>
+      <p>Open the <strong>Detached</strong> tab: a row of buttons appears right under the tabs. <strong>Back up</strong> opens the Play-Detach folder: change the file name if you like, or go to another folder, and tap <strong>Save here</strong>. <strong>Restore</strong> opens the same folder: tap the backup file. <strong>Re-attach all</strong> clears the whole list after you confirm.</p>
+      <p><strong>Automatic backup.</strong> After every change the list is also saved to <code>play-detach-auto.txt</code> in the same folder, and Restore shows it first as <strong>Automatic backup</strong>. An empty list never replaces it, so after Re-attach all you can still get the old list back. Turn it off or on with <code>play-detach autobackup off</code> / <code>on</code>.</p>
       <p>Restoring replaces the current list with the one in the file. Backups are plain text files with one package per line, so you can also edit them or use them as <code>detach.txt</code>. They stay on your storage when the module is removed.</p>
     </section>
 
@@ -70,8 +93,10 @@
         <div class="cmd"><span>Re-attach an app</span><pre>su -c '/data/adb/modules/play-detach/play-detach remove com.example.app'</pre></div>
         <div class="cmd"><span>Re-attach everything</span><pre>su -c '/data/adb/modules/play-detach/play-detach clear'</pre></div>
         <div class="cmd"><span>Check if the current list is active</span><pre>su -c '/data/adb/modules/play-detach/play-detach status'</pre></div>
-        <div class="cmd"><span>Back up the list to Download</span><pre>su -c '/data/adb/modules/play-detach/play-detach backup'</pre></div>
-        <div class="cmd"><span>Restore a backup</span><pre>su -c '/data/adb/modules/play-detach/play-detach restore /sdcard/Download/play-detach-backup.txt'</pre></div>
+        <div class="cmd"><span>Back up the list to the Play-Detach folder</span><pre>su -c '/data/adb/modules/play-detach/play-detach backup'</pre></div>
+        <div class="cmd"><span>Restore a backup</span><pre>su -c '/data/adb/modules/play-detach/play-detach restore /sdcard/Play-Detach/play-detach-backup.txt'</pre></div>
+        <div class="cmd"><span>Restore the automatic backup</span><pre>su -c '/data/adb/modules/play-detach/play-detach restore /sdcard/Play-Detach/play-detach-auto.txt'</pre></div>
+        <div class="cmd"><span>Turn the automatic backup off (on again with on)</span><pre>su -c '/data/adb/modules/play-detach/play-detach autobackup off'</pre></div>
         <div class="cmd"><span>All commands</span><pre>su -c '/data/adb/modules/play-detach/play-detach help'</pre></div>
       </div>
     </section>

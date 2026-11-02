@@ -5,8 +5,11 @@
 
 DATA_DIR=/data/adb/play-detach
 LIST="$DATA_DIR/detach.list"
-# Internal storage as seen by root; shows up as Download/ in file managers
-BACKUP_FILE=/data/media/0/Download/play-detach-backup.txt
+# Internal storage as seen by root (/sdcard in file managers). Backups go to
+# the Play-Detach folder the installer creates, or to Download if it is gone.
+STORAGE=/data/media/0
+BACKUP_DIR="$STORAGE/Play-Detach"
+AUTO_NAME=play-detach-auto.txt
 STORE=com.android.vending
 
 die() {
@@ -28,11 +31,14 @@ Commands:
   clear             Re-attach everything
   import <file>     Detach packages listed in a file (one per line)
   status            Show when the Play Store last loaded the list
-  backup [file]     Save the list (default: Download/play-detach-backup.txt)
+  backup [file]     Save the list (default: Play-Detach/play-detach-backup.txt)
   restore [file]    Replace the list with a backup
+  autobackup [on|off]
+                    Show or change the automatic backup
   help              Show this help
 
 Changes apply right away. The Play Store is restarted, no reboot needed.
+Each change also saves Play-Detach/play-detach-auto.txt (automatic backup).
 EOF
 }
 
@@ -89,6 +95,42 @@ write_list() {
     }
 }
 
+backup_dir() {
+    if [ -d "$BACKUP_DIR" ]; then echo "$BACKUP_DIR"; else echo "$STORAGE/Download"; fi
+}
+
+# Saves the current list to a file. Prints an error and returns 1 on failure.
+save_backup() {
+    file=$1
+    dir=$(dirname "$file")
+    [ -d "$dir" ] || {
+        echo "Error: folder not found: $dir" >&2
+        return 1
+    }
+    count=$(read_list | wc -l)
+    tmp="$file.tmp.$$"
+    {
+        echo "# Play Detach backup, $(date '+%Y-%m-%d %H:%M'), $count package(s)"
+        read_list
+    } >"$tmp" 2>/dev/null && mv -f "$tmp" "$file" || {
+        rm -f "$tmp"
+        echo "Error: cannot write $file" >&2
+        return 1
+    }
+    # Same owner as the folder, so file managers and apps can read it
+    chown "$(stat -c %u:%g "$dir")" "$file" 2>/dev/null
+    chmod 664 "$file"
+}
+
+# Keeps a copy of the list after every change. An empty list never replaces
+# a good copy.
+auto_backup() {
+    [ -f "$DATA_DIR/no-auto-backup" ] && return 0
+    [ "$(read_list | wc -l)" -gt 0 ] || return 0
+    save_backup "$(backup_dir)/$AUTO_NAME" 2>/dev/null
+    return 0
+}
+
 # Runs in the background so the caller (WebUI or terminal) is not kept waiting.
 restart_store() {
     am force-stop "$STORE" >/dev/null 2>&1 &
@@ -107,6 +149,7 @@ case "$cmd" in
         [ $# -gt 0 ] || die "no package given"
         check_pkgs "$@"
         { read_list; printf '%s\n' "$@"; } | write_list
+        auto_backup
         restart_store
         for p in "$@"; do echo "Detached: $p"; done
         ;;
@@ -118,12 +161,14 @@ case "$cmd" in
             current=$(printf '%s\n' "$current" | grep -vxF "$p")
         done
         printf '%s\n' "$current" | sed '/^$/d' | write_list
+        auto_backup
         restart_store
         for p in "$@"; do echo "Re-attached: $p"; done
         ;;
     set)
         check_pkgs "$@"
         if [ $# -gt 0 ]; then printf '%s\n' "$@"; else :; fi | write_list
+        auto_backup
         restart_store
         echo "Detached $# package(s)"
         ;;
@@ -137,6 +182,7 @@ case "$cmd" in
         pkgs=$(read_pkg_file "$1") || exit 1
         [ -n "$pkgs" ] || die "no packages in $1"
         { read_list; printf '%s\n' "$pkgs"; } | write_list
+        auto_backup
         restart_store
         echo "Imported $(printf '%s\n' "$pkgs" | wc -l) package(s)"
         ;;
@@ -166,31 +212,31 @@ case "$cmd" in
         fi
         ;;
     backup)
-        file="${1:-$BACKUP_FILE}"
-        dir=$(dirname "$file")
-        [ -d "$dir" ] || die "folder not found: $dir"
-        count=$(read_list | wc -l)
-        tmp="$file.tmp.$$"
-        {
-            echo "# Play Detach backup, $(date '+%Y-%m-%d %H:%M'), $count package(s)"
-            read_list
-        } >"$tmp" || {
-            rm -f "$tmp"
-            die "cannot write $file"
-        }
-        mv -f "$tmp" "$file" || die "cannot write $file"
-        # Same owner as the folder, so file managers and apps can read it
-        chown "$(stat -c %u:%g "$dir")" "$file" 2>/dev/null
-        chmod 664 "$file"
-        echo "Saved $count package(s) to $file"
+        file="${1:-$(backup_dir)/play-detach-backup.txt}"
+        save_backup "$file" || exit 1
+        echo "Saved $(read_list | wc -l) package(s) to $file"
         ;;
     restore)
-        file="${1:-$BACKUP_FILE}"
+        file="${1:-$(backup_dir)/play-detach-backup.txt}"
         [ -f "$file" ] || die "backup not found: $file"
         pkgs=$(read_pkg_file "$file") || exit 1
         printf '%s\n' "$pkgs" | sed '/^$/d' | write_list
+        auto_backup
         restart_store
         echo "Restored $(read_list | wc -l) package(s) from $file"
+        ;;
+    autobackup)
+        case "$1" in
+            on) rm -f "$DATA_DIR/no-auto-backup" && auto_backup ;;
+            off) mkdir -p "$DATA_DIR" && touch "$DATA_DIR/no-auto-backup" ;;
+            '') ;;
+            *) die "use: autobackup [on|off]" ;;
+        esac
+        if [ -f "$DATA_DIR/no-auto-backup" ]; then
+            echo "Automatic backup: off"
+        else
+            echo "Automatic backup: on, $(backup_dir)/$AUTO_NAME"
+        fi
         ;;
     help | -h | --help | '')
         usage
