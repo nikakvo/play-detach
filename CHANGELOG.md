@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.1
+
+- Automatic backup switch in the Back up and Restore windows, so it can be turned off without the command line
+- Long-press an app to see which app installed it (Play Store, package installer for APK files, Xiaomi Backup, SAI, another store, or unknown), so it is clear why an app is marked Sideloaded
+- The help page explains how Sideloaded is detected
+
 ## v1.1.0
 
 - New look for the WebUI: the User apps, Detached and System apps tabs are coloured cards that always fit the screen, and the status line no longer overlaps the list when you scroll

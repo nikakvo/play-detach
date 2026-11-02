@@ -98,7 +98,7 @@ const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));
 // State
 // ---------------------------------------------------------------------------
 
-/** @type {Map<string, {pkg: string, label: string, system: boolean, installed: boolean, detached: boolean, sideloaded: boolean}>} */
+/** @type {Map<string, {pkg: string, label: string, system: boolean, installed: boolean, detached: boolean, sideloaded: boolean, installer?: string}>} */
 const apps = new Map();
 let tab = "user";
 let query = "";
@@ -146,7 +146,9 @@ async function loadInstallers() {
     if (!m) continue;
     seen++;
     const app = apps.get(m[1]);
-    if (app && !app.system) app.sideloaded = m[2] !== "com.android.vending";
+    if (!app) continue;
+    app.installer = m[2];
+    if (!app.system) app.sideloaded = m[2] !== "com.android.vending";
   }
   return seen > 0;
 }
@@ -510,12 +512,37 @@ async function removeGhosts() {
 // App menu (long press)
 // ---------------------------------------------------------------------------
 
+// Readable name for the app that installed a package.
+const INSTALLERS = {
+  "com.android.vending": "Play Store",
+  "com.miui.packageinstaller": "Package installer (APK file)",
+  "com.google.android.packageinstaller": "Package installer (APK file)",
+  "com.android.packageinstaller": "Package installer (APK file)",
+  "com.miui.backup": "Xiaomi Backup (restored)",
+  "com.aurora.store": "Aurora Store",
+  "org.fdroid.fdroid": "F-Droid",
+  "org.fdroid.basic": "F-Droid",
+  "com.looker.droidify": "Droid-ify",
+  "dev.imranr.obtainium": "Obtainium",
+  "com.machiav3lli.backup": "Neo Backup (restored)",
+  "org.swiftapps.swiftbackup": "Swift Backup (restored)",
+};
+function installerName(i) {
+  if (!i || i === "null") return "Unknown (adb, a root shell or the ROM)";
+  if (INSTALLERS[i]) return INSTALLERS[i];
+  if (/\.sai(\.|$)/.test(i)) return "SAI (Split APKs Installer)";
+  return i;
+}
+
 let sheetApp = null;
 
 function openAppSheet(app) {
   sheetApp = app;
   $("app-title").textContent = app.label;
   $("app-pkg").textContent = app.pkg;
+  const known = app.installed && app.installer !== undefined;
+  $("app-src").hidden = !known;
+  if (known) $("app-src").textContent = `Installed by: ${installerName(app.installer)}`;
   $("app-ico").replaceChildren(makeIcon(app));
   $("appsheet").hidden = false;
 }
@@ -696,6 +723,7 @@ function openPicker(mode) {
     $("picker-name").value = `play-detach-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.txt`;
   }
   $("picker").hidden = false;
+  loadAutoBackup();
   startDir().then(openDir);
 }
 
@@ -711,6 +739,27 @@ async function saveBackup() {
   }
   const n = updateCounts();
   toast(`Saved ${n} ${n === 1 ? "app" : "apps"} to ${niceDir(file)}`);
+}
+
+// Automatic backup switch in the backup sheet (play-detach autobackup)
+async function loadAutoBackup() {
+  const res = await exec(`${CLI} autobackup`);
+  const m = res.stdout.match(/Automatic backup: (on|off)/);
+  $("auto-row").hidden = !m;
+  if (m) $("auto-switch").checked = m[1] === "on";
+}
+
+async function setAutoBackup(on) {
+  const sw = $("auto-switch");
+  sw.disabled = true;
+  const res = await exec(`${CLI} autobackup ${on ? "on" : "off"}`);
+  sw.disabled = false;
+  if (res.errno !== 0) {
+    sw.checked = !on;
+    toast(res.stderr.trim() || "Could not change the automatic backup", true);
+    return;
+  }
+  toast(on ? "Automatic backup on" : "Automatic backup off");
 }
 
 let confirmAsk = null; // set in setupUi
@@ -898,6 +947,7 @@ function setupUi() {
   });
   $("picker-ok").addEventListener("click", saveBackup);
   $("picker-name").addEventListener("input", checkName);
+  $("auto-switch").addEventListener("change", (e) => setAutoBackup(e.target.checked));
   $("confirm-no").addEventListener("click", () => (confirm.hidden = true));
   confirm.addEventListener("click", (e) => {
     if (e.target === confirm) confirm.hidden = true;

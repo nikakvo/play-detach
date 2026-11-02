@@ -47,7 +47,8 @@
 
     <section>
       <h2>Sideloaded apps</h2>
-      <p>Apps marked <strong>Sideloaded</strong> were not installed by the Play Store: APK files, other stores, patched apps. The Play Store can still replace them with its own version and undo a patch, so these are the apps you usually want to detach.</p>
+      <p>Apps marked <strong>Sideloaded</strong> were not installed by the Play Store: APK files, other stores, patched apps, apps restored from a backup app, or apps installed with adb or a root shell. Android remembers which app installed each package, and every app whose installer is not the Play Store counts as sideloaded. Long-press an app to see its installer under <strong>Installed by</strong>.</p>
+      <p>The Play Store can still replace these apps with its own version and undo a patch, so they are the apps you usually want to detach.</p>
       <p>In <strong>User apps</strong>, tap <strong>Sideloaded</strong> to show only them, then <strong>Detach all</strong> to detach every one of them with one tap. <strong>Detach all</strong> always works on the apps in the list you see, so it also works together with the search box. You are asked before anything changes.</p>
     </section>
 
@@ -60,6 +61,7 @@
       <h2>App menu</h2>
       <p>Long-press an app to open its menu:</p>
       <ul>
+        <li><strong>Installed by</strong> - which app installed it: the Play Store, the package installer (an APK file), a backup app, another store, or unknown (adb, a root shell or the ROM).</li>
         <li><strong>Open in Play Store</strong> - opens the app's page, an easy way to check that a detached app no longer shows an Update button.</li>
         <li><strong>Select several apps</strong> - starts selecting with this app already marked.</li>
         <li><strong>Copy package name</strong> - for the command line or a <code>detach.txt</code>.</li>
@@ -70,7 +72,7 @@
       <h2>Backup and restore</h2>
       <p>The module keeps its backups in its own folder, <strong>Play-Detach</strong> in internal storage (<code>/sdcard/Play-Detach</code>), created when the module is installed. If you delete that folder, backups go to <strong>Download</strong> instead; installing the module again creates the folder again.</p>
       <p>Open the <strong>Detached</strong> tab: a row of buttons appears right under the tabs. <strong>Back up</strong> opens the Play-Detach folder: change the file name if you like, or go to another folder, and tap <strong>Save here</strong>. <strong>Restore</strong> opens the same folder: tap the backup file. <strong>Re-attach all</strong> clears the whole list after you confirm.</p>
-      <p><strong>Automatic backup.</strong> After every change the list is also saved to <code>play-detach-auto.txt</code> in the same folder, and Restore shows it first as <strong>Automatic backup</strong>. An empty list never replaces it, so after Re-attach all you can still get the old list back. Turn it off or on with <code>play-detach autobackup off</code> / <code>on</code>.</p>
+      <p><strong>Automatic backup.</strong> After every change the list is also saved to <code>play-detach-auto.txt</code> in the same folder, and Restore shows it first as <strong>Automatic backup</strong>. An empty list never replaces it, so after Re-attach all you can still get the old list back. Turn it off or on with the <strong>Automatic backup</strong> switch in the Back up and Restore windows, or with <code>play-detach autobackup off</code> / <code>on</code>.</p>
       <p>Restoring replaces the current list with the one in the file. Backups are plain text files with one package per line, so you can also edit them or use them as <code>detach.txt</code>. They stay on your storage when the module is removed.</p>
     </section>
 

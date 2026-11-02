@@ -120,6 +120,7 @@
         <div class="meta">
           <h2 id="app-title">App</h2>
           <div class="pkg" id="app-pkg"></div>
+          <div class="app-src" id="app-src" hidden></div>
         </div>
       </div>
       <div class="menu">
@@ -152,6 +153,10 @@
         <input id="picker-name" type="text" spellcheck="false" autocomplete="off" autocapitalize="off">
         <div class="picker-warn" id="picker-warn" hidden>A file with this name is already here and will be replaced.</div>
       </div>
+      <label class="auto-row" id="auto-row" hidden>
+        <span><strong>Automatic backup</strong><small>Saves play-detach-auto.txt to Play-Detach after every change</small></span>
+        <span class="switch"><input type="checkbox" role="switch" id="auto-switch"><span class="track"></span></span>
+      </label>
       <div class="actions">
         <button class="btn ghost" id="picker-cancel" type="button">Cancel</button>
         <button class="btn primary" id="picker-ok" type="button">Save here</button>
