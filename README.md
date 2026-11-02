@@ -1,3 +1,9 @@
+<p align="center">
+  <b>English</b> | 
+  <a href="/README_ru.md">Русский</a>
+</p>
+<hr>
+
 <p align="center"><img src="module/banner.png" alt="Play Detach" width="640"></p>
 
 # Play Detach
