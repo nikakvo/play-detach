@@ -111,4 +111,57 @@ document.querySelectorAll(".help pre").forEach((pre) => {
   wrap.append(pre, btn);
 });
 
+
+// Contents: every section title gets a number and a link at the top of the
+// page. Links scroll with JavaScript instead of changing the address, so the
+// back arrow and the phone's back button still leave the help page.
+function buildContents(main) {
+  const sections = [...main.querySelectorAll(":scope > section")];
+  const nav = document.createElement("nav");
+  nav.className = "toc";
+  const head = document.createElement("div");
+  head.className = "toc-title";
+  head.dataset.i18n = "contents";
+  head.textContent = t("contents");
+  nav.append(head);
+  sections.forEach((sec, i) => {
+    const h2 = sec.querySelector("h2");
+    if (!h2) return;
+    const n = i + 1;
+    const title = h2.textContent;
+    sec.id = `${main.dataset.body}-${n}`;
+    const num = document.createElement("span");
+    num.className = "num";
+    num.textContent = String(n);
+    h2.prepend(num);
+    const a = document.createElement("a");
+    a.href = `#${sec.id}`;
+    const an = document.createElement("span");
+    an.className = "num";
+    an.textContent = String(n);
+    a.append(an, document.createTextNode(title));
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      sec.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    nav.append(a);
+  });
+  main.prepend(nav);
+}
+document.querySelectorAll("main.help").forEach(buildContents);
+
+// Arrow at the bottom right that goes back to the top
+const topBtn = document.createElement("button");
+topBtn.type = "button";
+topBtn.className = "to-top";
+topBtn.dataset.i18nAria = "to_top";
+topBtn.setAttribute("aria-label", t("to_top"));
+topBtn.innerHTML =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg>';
+topBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+document.body.append(topBtn);
+const showTop = () => topBtn.classList.toggle("show", window.scrollY > 400);
+window.addEventListener("scroll", showTop, { passive: true });
+showTop();
+
 showLang();

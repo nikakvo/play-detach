@@ -47,7 +47,7 @@
         <li>Turn on the switch next to it. The change applies right away and the Play Store is restarted, no reboot needed.</li>
         <li>The <strong>Detached</strong> tab lists every detached app. Turn a switch off to let the Play Store see that app again.</li>
       </ol>
-      <p>Apps marked <strong>Not installed</strong> are still on your list but no longer on the phone. They stay detached, so a patched app you reinstall is protected right away. To clear them out, tap <strong>Remove</strong> in the note at the top of the Detached tab, or turn them off one by one.</p>
+      <p>Apps marked <strong>Not installed</strong> are still on your list but no longer on the phone. They are shown at the top of the list and stay detached, so a patched app you reinstall is protected right away. To clear them out, tap <strong>Remove</strong> in the note at the top of the Detached tab, or turn them off one by one.</p>
     </section>
 
     <section>
@@ -55,6 +55,14 @@
       <p>Apps marked <strong>Sideloaded</strong> were not installed by the Play Store: APK files, other stores, patched apps, apps restored from a backup app, or apps installed with adb or a root shell. Android remembers which app installed each package, and every app whose installer is not the Play Store counts as sideloaded. Long-press an app to see its installer under <strong>Installed by</strong>.</p>
       <p>The Play Store can still replace these apps with its own version and undo a patch, so they are the apps you usually want to detach.</p>
       <p>In <strong>User apps</strong>, tap <strong>Sideloaded</strong> to show only them, then <strong>Detach all</strong> to detach every one of them with one tap. <strong>Detach all</strong> always works on the apps in the list you see, so it also works together with the search box. You are asked before anything changes.</p>
+    </section>
+
+    <section>
+      <h2>Detach new sideloaded apps automatically</h2>
+      <p>Tap the status line under the tabs to open <strong>Status and settings</strong>, then turn on <strong>Detach new sideloaded apps</strong>. It is off until you turn it on. From then on every new app you install from outside the Play Store (an APK file, another store, a patched app, adb) is detached right away, so the Play Store never replaces it. Apps that were already installed are not touched.</p>
+      <p>You get a notification for each one, and the next time you open Play Detach a note at the top lists the apps that were detached automatically. <strong>Auto</strong> next to the status line shows that it is on. To undo it for an app, turn its switch off as usual; it is not detached again unless you remove it and install it again.</p>
+      <p>Apps installed by the Play Store and apps restored by Xiaomi Backup, Swift Backup or Neo Backup are never detached automatically. If more than 5 new apps appear at once, which usually means a backup is being restored, none of them is detached and you get a notification instead.</p>
+      <p>A small background check looks for new apps every 3 seconds. It only reads the time of one folder, and asks the system for the app list only when something was installed, updated or removed, so it does not use battery.</p>
     </section>
 
     <section>
@@ -86,15 +94,23 @@
       <ul>
         <li><strong>Active in Play Store</strong> - the module is working in the Play Store.</li>
         <li><strong>Applies when the Play Store opens</strong> - the list changed after the Play Store last started; it is saved and loads the next time the Play Store opens.</li>
-        <li><strong>Problem</strong> - the module could not start in the Play Store. The message shows the reason; see Troubleshooting below.</li>
+        <li><strong>Play Store updated</strong> - the Play Store was updated after its last start. The module is checked again the next time the Play Store opens.</li>
+        <li><strong>Not working</strong> - the module could not start in the Play Store. The message names the reason; see Troubleshooting below.</li>
       </ul>
       <p><strong>Orange right after a change is normal.</strong> When you turn a switch on or off, the Play Store is closed and the new list is saved. The dot stays orange until the Play Store starts again and loads the new list, then it turns green. Open the Play Store once, or just wait until it starts in the background.</p>
+      <p>Tap the status line for <strong>Status and settings</strong>: the Play Store version and when it was last updated, when the Play Store last started, and the result of the self-check.</p>
+    </section>
+
+    <section>
+      <h2>Self-check after a Play Store update</h2>
+      <p>Each time the Play Store starts, the module writes to its log whether it could hook into it. Play Detach reads that line within a few seconds and saves the result, so the status stays right even hours later, when the log no longer has the line.</p>
+      <p>The Play Store updates itself often, and a new version or a new Android version could change the call the module uses. When the Play Store is updated, the status line says so until the Play Store starts again and the module is checked. If the check fails, the status line turns red with the reason, and you get a notification once, so you know that detached apps could get updates again. You are notified again only after the module worked in between.</p>
     </section>
 
     <section>
       <h2>Language</h2>
       <p>The <strong>EN / RU</strong> switch next to Help changes the language of the whole module: the app, this help page and the module description in your root manager. The choice is remembered. The first time, the language follows the phone. The installer also shows its messages in the chosen language.</p>
-      <p>The command line and the module log are always in English.</p>
+      <p>Notifications follow the chosen language. The command line and the module log are always in English.</p>
     </section>
 
     <section>
@@ -110,6 +126,8 @@
         <div class="cmd"><span>Restore a backup</span><pre>su -c '/data/adb/modules/play-detach/play-detach restore /sdcard/Play-Detach/play-detach-backup.txt'</pre></div>
         <div class="cmd"><span>Restore the automatic backup</span><pre>su -c '/data/adb/modules/play-detach/play-detach restore /sdcard/Play-Detach/play-detach-auto.txt'</pre></div>
         <div class="cmd"><span>Turn the automatic backup off (on again with on)</span><pre>su -c '/data/adb/modules/play-detach/play-detach autobackup off'</pre></div>
+        <div class="cmd"><span>Detach new sideloaded apps automatically (off again with off)</span><pre>su -c '/data/adb/modules/play-detach/play-detach autodetach on'</pre></div>
+        <div class="cmd"><span>Look for new apps right now</span><pre>su -c '/data/adb/modules/play-detach/play-detach scan'</pre></div>
         <div class="cmd"><span>All commands</span><pre>su -c '/data/adb/modules/play-detach/play-detach help'</pre></div>
       </div>
     </section>
@@ -139,6 +157,8 @@
       <p>If an app still shows up in the Play Store, close the Play Store, clear its cache in system settings and open it again. Then check the module log:</p>
       <pre>su -c 'logcat -d -s PlayDetach'</pre>
       <p>A line with <strong>active in Play Store</strong> means the module works. Any other message names the step that failed, for example a missing Zygisk or a change in a new Android version.</p>
+      <p>The self-check in Status and settings names the same step: <strong>the call the module uses changed</strong> (the Play Store or Android changed it), <strong>libbinder.so not found</strong> or <strong>the hook could not be placed</strong> (Android changed). These need a new version of the module.</p>
+      <p>If you get no notifications, check in system settings that notifications of the <strong>Shell</strong> app are allowed; Play Detach sends them through it.</p>
     </section>
 
     <section>
@@ -146,6 +166,7 @@
       <ul>
         <li><strong>Zygisk library</strong> - C++20, built with Android NDK r29 for arm64-v8a. Uses Zygisk API v4, so it runs on ReZygisk, Zygisk Next, NeoZygisk and Magisk. No third-party libraries. Every read from Play Store binder data is bounds-checked, and on anything unexpected the call is passed through untouched.</li>
         <li><strong>Command line tool</strong> - a plain shell script. The list is written to a temporary file and then swapped in, so the Play Store never reads a half-written list.</li>
+        <li><strong>Background check</strong> - a small shell loop started at boot (<code>service.sh</code>) that notices new apps, Play Store updates and failed self-checks.</li>
         <li><strong>WebUI</strong> - plain HTML, CSS and JavaScript with no frameworks and no build step. App names and icons come from the root manager's WebUI API. Fonts are bundled, so it works offline.</li>
         <li><strong>Build</strong> - one <code>build.sh</code> script builds the whole module from source.</li>
       </ul>
@@ -177,7 +198,7 @@
         <li>Включите переключатель рядом с ним. Изменение применяется сразу, Play Маркет перезапускается, перезагрузка не нужна.</li>
         <li>На вкладке <strong>Откреплённые</strong> собраны все откреплённые приложения. Выключите переключатель, чтобы Play Маркет снова видел приложение.</li>
       </ol>
-      <p>Приложения с пометкой <strong>Не установлено</strong> ещё в вашем списке, но уже удалены с телефона. Они остаются откреплёнными, поэтому пропатченное приложение, которое вы установите снова, сразу защищено. Чтобы убрать их, нажмите <strong>Убрать</strong> в заметке вверху вкладки Откреплённые или выключите их по одному.</p>
+      <p>Приложения с пометкой <strong>Не установлено</strong> ещё в вашем списке, но уже удалены с телефона. Они показаны в начале списка и остаются откреплёнными, поэтому пропатченное приложение, которое вы установите снова, сразу защищено. Чтобы убрать их, нажмите <strong>Убрать</strong> в заметке вверху вкладки Откреплённые или выключите их по одному.</p>
     </section>
 
     <section>
@@ -185,6 +206,14 @@
       <p>Приложения с пометкой <strong>Вне Маркета</strong> установлены не через Play Маркет: из APK-файлов, из других магазинов, пропатченные, восстановленные из бэкапа или установленные через adb или root-терминал. Android помнит, какое приложение установило каждый пакет, и всё, что установлено не Play Маркетом, считается «вне Маркета». Удерживайте приложение, чтобы увидеть установщик в строке <strong>Установлено через</strong>.</p>
       <p>Play Маркет всё равно может заменить такие приложения своей версией и отменить патч, поэтому обычно именно их и стоит открепить.</p>
       <p>На вкладке <strong>Сторонние</strong> нажмите <strong>Вне Маркета</strong>, чтобы показать только их, а затем <strong>Открепить все</strong>, чтобы открепить их одним нажатием. <strong>Открепить все</strong> всегда действует на приложения из списка, который вы видите, поэтому работает и вместе с поиском. Перед изменением модуль спрашивает подтверждение.</p>
+    </section>
+
+    <section>
+      <h2>Автоматическое открепление новых приложений вне Маркета</h2>
+      <p>Нажмите на строку статуса под вкладками, чтобы открыть <strong>Статус и настройки</strong>, и включите <strong>Откреплять новые приложения вне Маркета</strong>. Пока вы её не включите, функция выключена. После этого каждое новое приложение, установленное не из Play Маркета (APK-файл, другой магазин, пропатченное приложение, adb), сразу открепляется, и Play Маркет никогда его не заменит. Уже установленные приложения не затрагиваются.</p>
+      <p>О каждом таком приложении приходит уведомление, а при следующем открытии Play Detach заметка вверху показывает, что было откреплено автоматически. Метка <strong>Авто</strong> рядом со строкой статуса показывает, что функция включена. Чтобы отменить это для приложения, просто выключите его переключатель; снова оно открепится, только если его удалить и установить заново.</p>
+      <p>Приложения, установленные Play Маркетом, и приложения, восстановленные через Xiaomi Backup, Swift Backup или Neo Backup, никогда не открепляются автоматически. Если сразу появляется больше 5 новых приложений, что обычно означает восстановление из бэкапа, ни одно из них не открепляется, а вместо этого приходит уведомление.</p>
+      <p>Небольшая фоновая проверка ищет новые приложения каждые 3 секунды. Она читает только время изменения одной папки и запрашивает список приложений у системы, только когда что-то установлено, обновлено или удалено, поэтому не расходует батарею.</p>
     </section>
 
     <section>
@@ -216,15 +245,23 @@
       <ul>
         <li><strong>Работает в Play Маркете</strong> - модуль работает в Play Маркете.</li>
         <li><strong>Применится при запуске Play Маркета</strong> - список изменился после последнего запуска Play Маркета; он сохранён и загрузится, когда Play Маркет откроется снова.</li>
-        <li><strong>Проблема</strong> - модуль не смог запуститься в Play Маркете. В сообщении указана причина; см. «Устранение неполадок» ниже.</li>
+        <li><strong>Play Маркет обновлён</strong> - Play Маркет обновился после последнего запуска. Модуль проверится снова, когда Play Маркет откроется.</li>
+        <li><strong>Не работает</strong> - модуль не смог запуститься в Play Маркете. В сообщении указана причина; см. «Устранение неполадок» ниже.</li>
       </ul>
       <p><strong>Оранжевый цвет сразу после изменения - это нормально.</strong> Когда вы переключаете приложение, Play Маркет закрывается, а новый список сохраняется. Точка остаётся оранжевой, пока Play Маркет не запустится и не загрузит новый список, затем становится зелёной. Откройте Play Маркет один раз или просто подождите, пока он запустится в фоне.</p>
+      <p>Нажмите на строку статуса, чтобы открыть <strong>Статус и настройки</strong>: версия Play Маркета и когда он обновлялся, когда он последний раз запускался и результат самопроверки.</p>
+    </section>
+
+    <section>
+      <h2>Самопроверка после обновления Play Маркета</h2>
+      <p>При каждом запуске Play Маркета модуль пишет в журнал, удалось ли ему подключиться. Play Detach читает эту строку в течение нескольких секунд и сохраняет результат, поэтому статус остаётся верным и через много часов, когда в журнале этой строки уже нет.</p>
+      <p>Play Маркет часто обновляется сам, а новая версия Play Маркета или Android может изменить вызов, который использует модуль. После обновления Play Маркета строка статуса сообщает об этом, пока Play Маркет не запустится снова и модуль не проверится. Если проверка не пройдена, строка статуса становится красной с причиной, и один раз приходит уведомление, чтобы вы знали, что откреплённые приложения снова могут обновиться. Повторное уведомление придёт, только если модуль в промежутке снова заработал.</p>
     </section>
 
     <section>
       <h2>Язык</h2>
       <p>Переключатель <strong>EN / RU</strong> рядом с кнопкой Справка меняет язык всего модуля: приложения, этой справки и описания модуля в root-менеджере. Выбор запоминается. При первом запуске язык выбирается по языку телефона. Установщик модуля тоже показывает сообщения на выбранном языке.</p>
-      <p>Командная строка и журнал модуля всегда на английском.</p>
+      <p>Уведомления приходят на выбранном языке. Командная строка и журнал модуля всегда на английском.</p>
     </section>
 
     <section>
@@ -240,6 +277,8 @@
         <div class="cmd"><span>Восстановить бэкап</span><pre>su -c '/data/adb/modules/play-detach/play-detach restore /sdcard/Play-Detach/play-detach-backup.txt'</pre></div>
         <div class="cmd"><span>Восстановить автоматический бэкап</span><pre>su -c '/data/adb/modules/play-detach/play-detach restore /sdcard/Play-Detach/play-detach-auto.txt'</pre></div>
         <div class="cmd"><span>Выключить автоматический бэкап (включить снова - on)</span><pre>su -c '/data/adb/modules/play-detach/play-detach autobackup off'</pre></div>
+        <div class="cmd"><span>Автоматически откреплять новые приложения вне Маркета (выключить - off)</span><pre>su -c '/data/adb/modules/play-detach/play-detach autodetach on'</pre></div>
+        <div class="cmd"><span>Проверить новые приложения прямо сейчас</span><pre>su -c '/data/adb/modules/play-detach/play-detach scan'</pre></div>
         <div class="cmd"><span>Все команды</span><pre>su -c '/data/adb/modules/play-detach/play-detach help'</pre></div>
       </div>
     </section>
@@ -269,6 +308,8 @@
       <p>Если приложение всё ещё видно в Play Маркете, закройте Play Маркет, очистите его кэш в настройках системы и откройте снова. Затем проверьте журнал модуля:</p>
       <pre>su -c 'logcat -d -s PlayDetach'</pre>
       <p>Строка <strong>active in Play Store</strong> означает, что модуль работает. Любое другое сообщение называет шаг, на котором произошла ошибка, например отсутствие Zygisk или изменения в новой версии Android.</p>
+      <p>Самопроверка в окне «Статус и настройки» называет тот же шаг: <strong>изменился вызов, который использует модуль</strong> (его изменил Play Маркет или Android), <strong>libbinder.so не найден</strong> или <strong>не удалось установить хук</strong> (изменился Android). В этих случаях нужна новая версия модуля.</p>
+      <p>Если уведомления не приходят, проверьте в настройках системы, что уведомления приложения <strong>Shell</strong> (Оболочка) разрешены; Play Detach отправляет их через него.</p>
     </section>
 
     <section>
@@ -276,6 +317,7 @@
       <ul>
         <li><strong>Библиотека Zygisk</strong> - C++20, собрана с Android NDK r29 для arm64-v8a. Использует Zygisk API v4, поэтому работает на ReZygisk, Zygisk Next, NeoZygisk и Magisk. Без сторонних библиотек. Каждое чтение данных binder Play Маркета проверяется на выход за границы, а при любых неожиданных данных вызов пропускается без изменений.</li>
         <li><strong>Инструмент командной строки</strong> - обычный shell-скрипт. Список записывается во временный файл и затем подменяется, поэтому Play Маркет никогда не прочитает наполовину записанный список.</li>
+        <li><strong>Фоновая проверка</strong> - небольшой shell-цикл, запускаемый при загрузке (<code>service.sh</code>), который замечает новые приложения, обновления Play Маркета и непройденные самопроверки.</li>
         <li><strong>WebUI</strong> - чистые HTML, CSS и JavaScript без фреймворков и сборки. Названия и иконки приложений берутся из WebUI API root-менеджера. Шрифты встроены, поэтому всё работает без интернета.</li>
         <li><strong>Сборка</strong> - один скрипт <code>build.sh</code> собирает весь модуль из исходников.</li>
       </ul>

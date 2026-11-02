@@ -124,6 +124,42 @@
     s_active: (n) => `Active in Play Store - ${n} ${pluralEn(n, "app", "apps")} detached`,
     s_pending: (n) => `${n} ${pluralEn(n, "app", "apps")} detached - applies when the Play Store opens`,
     s_problem: (msg) => `Problem: ${msg}`,
+    s_fail: (why) => `Not working: ${why}`,
+    s_store_updated: (n) =>
+      `Play Store updated - ${n} ${pluralEn(n, "app", "apps")} detached, checked when it opens`,
+
+    // Status and settings
+    auto_pill: "Auto",
+    ok: "OK",
+    settings_title: "Status and settings",
+    chk_none: "Nothing detached yet",
+    chk_none_line: "With an empty list the module stays out of the Play Store.",
+    chk_ok: "Works in the Play Store",
+    chk_wait: "Waiting for the Play Store",
+    chk_fail: "Not working in the Play Store",
+    chk_store: (v) => `Play Store version: ${v}`,
+    chk_store_updated: (d) => `Play Store updated: ${d}`,
+    chk_last_start: (d) => `Play Store last started: ${d}`,
+    chk_never: "The Play Store has not started since the module was installed.",
+    chk_hook_ok: (api) => `Self-check: the module is hooked into the Play Store (Android API ${api}).`,
+    chk_hook_unknown: "Self-check: no result yet for the last Play Store start.",
+    chk_hook_fail: (why) => `Self-check failed: ${why}`,
+    chk_after_update: "The Play Store was updated after its last start. The module is checked again when it opens.",
+    chk_pending: "The list changed after the last Play Store start. It applies when the Play Store opens.",
+    why_field: "the Play Store or Android changed the call the module uses",
+    why_binder: "Android changed (libbinder.so not found)",
+    why_plt: "Android changed (the hook could not be placed)",
+    why_api: "this Android version is not supported",
+    why_list: "Zygisk could not pass the list to the Play Store",
+    ad_title: "Detach new sideloaded apps",
+    ad_hint: "Apps you install from an APK file, another store or as a patched app are detached right away, with a notification",
+    t_ad_on: "New sideloaded apps will be detached automatically",
+    t_ad_off: "Automatic detach off",
+    e_ad: "Could not change the automatic detach",
+    recent_title: "Detached automatically",
+    auto_note: (names) => `Detached automatically: ${names}.`,
+    auto_note_skip: (n) =>
+      `${n} new apps were installed at once, probably restored from a backup. They were not detached automatically.`,
 
     module_description: "Stops the Play Store from updating the apps you choose.",
 
@@ -133,6 +169,8 @@
     copy_command: "Copy command",
     copied: "Command copied",
     copy_not_supported: "Copying is not supported here",
+    contents: "Contents",
+    to_top: "Back to top",
   };
 
   const ru = {
@@ -243,6 +281,40 @@
     s_active: (n) => `Работает в Play Маркете - откреплено ${n}`,
     s_pending: (n) => `Откреплено ${n} - применится при запуске Play Маркета`,
     s_problem: (msg) => `Проблема: ${msg}`,
+    s_fail: (why) => `Не работает: ${why}`,
+    s_store_updated: (n) => `Play Маркет обновлён - откреплено ${n}, проверка при его запуске`,
+
+    auto_pill: "Авто",
+    ok: "OK",
+    settings_title: "Статус и настройки",
+    chk_none: "Пока ничего не откреплено",
+    chk_none_line: "С пустым списком модуль не вмешивается в Play Маркет.",
+    chk_ok: "Работает в Play Маркете",
+    chk_wait: "Ожидает запуска Play Маркета",
+    chk_fail: "Не работает в Play Маркете",
+    chk_store: (v) => `Версия Play Маркета: ${v}`,
+    chk_store_updated: (d) => `Play Маркет обновлён: ${d}`,
+    chk_last_start: (d) => `Последний запуск Play Маркета: ${d}`,
+    chk_never: "Play Маркет ещё не запускался после установки модуля.",
+    chk_hook_ok: (api) => `Самопроверка: модуль подключился к Play Маркету (Android API ${api}).`,
+    chk_hook_unknown: "Самопроверка: для последнего запуска Play Маркета результата пока нет.",
+    chk_hook_fail: (why) => `Самопроверка не пройдена: ${why}`,
+    chk_after_update: "Play Маркет обновился после последнего запуска. Модуль проверится снова, когда он откроется.",
+    chk_pending: "Список изменился после последнего запуска Play Маркета. Он применится, когда Play Маркет откроется.",
+    why_field: "Play Маркет или Android изменили вызов, который использует модуль",
+    why_binder: "Android изменился (libbinder.so не найден)",
+    why_plt: "Android изменился (не удалось установить хук)",
+    why_api: "эта версия Android не поддерживается",
+    why_list: "Zygisk не смог передать список в Play Маркет",
+    ad_title: "Откреплять новые приложения вне Маркета",
+    ad_hint: "Приложения, установленные из APK-файла, другого магазина или пропатченные, сразу открепляются, с уведомлением",
+    t_ad_on: "Новые приложения вне Маркета будут открепляться автоматически",
+    t_ad_off: "Автоматическое открепление выключено",
+    e_ad: "Не удалось изменить автоматическое открепление",
+    recent_title: "Откреплено автоматически",
+    auto_note: (names) => `Откреплено автоматически: ${names}.`,
+    auto_note_skip: (n) =>
+      `Сразу установлено ${n} ${pluralRu(n, "новое приложение", "новых приложения", "новых приложений")}, вероятно восстановление из бэкапа. Они не откреплены автоматически.`,
 
     module_description: "Не даёт Play Маркету обновлять выбранные вами приложения.",
 
@@ -251,6 +323,8 @@
     copy_command: "Копировать команду",
     copied: "Команда скопирована",
     copy_not_supported: "Копирование здесь не поддерживается",
+    contents: "Содержание",
+    to_top: "Наверх",
   };
 
   const STR = { en, ru };

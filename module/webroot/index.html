@@ -86,12 +86,18 @@
       </button>
     </div>
 
-    <div class="status" id="status" data-state="idle">
+    <button class="status" id="status" type="button" data-state="idle" aria-haspopup="dialog">
       <span class="dot"></span><span class="text" id="status-text" data-i18n="loading">Loading...</span>
-    </div>
+      <span class="status-auto" id="status-auto" data-i18n="auto_pill" hidden>Auto</span>
+      <svg class="gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
   </header>
 
   <main>
+    <div class="note info" id="auto-note" hidden>
+      <span id="auto-text"></span>
+      <button class="note-btn" id="auto-ok" type="button" data-i18n="ok">OK</button>
+    </div>
     <div class="note" id="ghost-note" hidden>
       <span id="ghost-text"></span>
       <button class="note-btn" id="ghost-remove" type="button" data-i18n="remove">Remove</button>
@@ -165,6 +171,31 @@
       <div class="actions">
         <button class="btn ghost" id="picker-cancel" type="button" data-i18n="cancel">Cancel</button>
         <button class="btn primary" id="picker-ok" type="button" data-i18n="save_here">Save here</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sheet-backdrop" id="settings" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <h2 id="settings-title" data-i18n="settings_title">Status and settings</h2>
+      <div class="health" id="check" data-state="idle">
+        <div class="health-head"><span class="dot"></span><strong id="check-title"></strong></div>
+        <ul class="health-lines" id="check-lines"></ul>
+      </div>
+      <label class="auto-row" id="ad-row">
+        <span><strong data-i18n="ad_title">Detach new sideloaded apps</strong><small data-i18n="ad_hint">Apps you install from an APK file, another store or as a patched app are detached right away, with a notification</small></span>
+        <span class="switch"><input type="checkbox" role="switch" id="ad-switch"><span class="track"></span></span>
+      </label>
+      <label class="auto-row" id="set-backup-row" hidden>
+        <span><strong data-i18n="auto_backup">Automatic backup</strong><small data-i18n="auto_backup_hint">Saves play-detach-auto.txt to Play-Detach after every change</small></span>
+        <span class="switch"><input type="checkbox" role="switch" id="set-backup"><span class="track"></span></span>
+      </label>
+      <div class="recent" id="recent" hidden>
+        <div class="recent-h" data-i18n="recent_title">Detached automatically</div>
+        <ul id="recent-list"></ul>
+      </div>
+      <div class="actions">
+        <button class="btn ghost" id="settings-close" type="button" data-i18n="close">Close</button>
       </div>
     </div>
   </div>

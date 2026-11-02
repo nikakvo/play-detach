@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.3.0
+
+- Detach new sideloaded apps automatically: an optional switch in the new Status and settings window. Every app you install from then on from an APK file, another store or as a patched app is detached right away, with a notification and a note in the app. Apps from the Play Store and apps restored by Xiaomi Backup, Swift Backup or Neo Backup are left alone, and when many apps appear at once (a backup being restored) nothing is detached. `play-detach autodetach on` / `off` does the same
+- Self-check: right after each Play Store start the result of the module is read and saved, so the status line stays right even hours later, when the system log no longer has it
+- After a Play Store update the status line says so until the Play Store has started again and the module was checked. If the module stops working, the status line turns red with the reason and you get a notification once
+- Tap the status line for Status and settings: Play Store version and last update, last Play Store start, self-check result, both automatic switches and the apps detached automatically
+- Apps that are no longer installed are listed at the top. When you install one of them again it stays detached and you get a notification
+- Long app names no longer hide the Sideloaded / Not installed badge
+- New `play-detach scan` command to look for new apps right away
+- The status line and the app list update by themselves while the WebUI is open, no need to close and reopen it
+- The help page starts with numbered contents: tap a topic to jump straight to it, and the arrow at the bottom right takes you back to the top
+
 ## v1.2.0
 
 - Russian language: an EN / RU switch next to Help changes the whole module - the app, every window and message, the help page and the module description in the root manager. The choice is remembered; the first time the language follows the phone. Russian translation based on the work of LegacyFreeman

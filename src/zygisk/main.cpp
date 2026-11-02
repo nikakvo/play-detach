@@ -49,7 +49,6 @@ namespace {
 constexpr char kStorePkg[] = "com.android.vending";
 constexpr char kListPath[] = "/data/adb/play-detach/detach.list";
 constexpr char kStatusPath[] = "/data/adb/play-detach/status";
-constexpr char kStatusTmp[] = "/data/adb/play-detach/status.tmp";
 constexpr char kBinderLib[] = "/libbinder.so";
 constexpr char kTransactSym[] = "_ZN7android14IPCThreadState8transactEijRKNS_6ParcelEPS1_j";
 
@@ -178,17 +177,22 @@ size_t countEntries(const char* buf, size_t size) {
 }
 
 // Overwrites a tiny status file (one line, never grows) so the WebUI can tell
-// that the Play Store loaded the current list. Written atomically.
+// that the Play Store loaded the current list. Written atomically; the
+// companion can run on several threads at once, so each one uses its own
+// temporary file. The result of the hook is read from the log right after
+// this file changes (play-detach check / status), see the CLI.
 void writeStatus(size_t count) {
     char line[64];
     int len = snprintf(line, sizeof(line), "loaded=%lld packages=%zu\n", static_cast<long long>(time(nullptr)), count);
     if (len <= 0) return;
-    int fd = open(kStatusTmp, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0600);
+    char tmp[96];
+    snprintf(tmp, sizeof(tmp), "%s.tmp.%d", kStatusPath, static_cast<int>(gettid()));
+    int fd = open(tmp, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0600);
     if (fd < 0) return;
     bool ok = writeAll(fd, line, static_cast<size_t>(len));
     close(fd);
-    if (ok) rename(kStatusTmp, kStatusPath);
-    else unlink(kStatusTmp);
+    if (ok) rename(tmp, kStatusPath);
+    else unlink(tmp);
 }
 
 // Runs as root in the Zygisk companion daemon. Protocol: uint32 size, then
@@ -398,7 +402,7 @@ bool installHook(zygisk::Api* api, JNIEnv* env) {
 
     api->pltHookRegister(dev, inode, kTransactSym, reinterpret_cast<void*>(transactHook),
                          reinterpret_cast<void**>(&g_transactOrig));
-    if (!api->pltHookCommit()) {
+    if (!api->pltHookCommit() || !g_transactOrig) {
         LOGE("PLT hook on IPCThreadState::transact failed");
         return false;
     }

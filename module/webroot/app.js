@@ -93,6 +93,18 @@ function getPackagesInfo(pkgs) {
   }
 }
 
+// Commands that change the list. The live status refresh waits while one runs,
+// so it never redraws a switch the user just flipped.
+let busy = 0;
+async function change(cmd) {
+  busy++;
+  try {
+    return await exec(cmd);
+  } finally {
+    busy--;
+  }
+}
+
 const lines = (s) => s.split("\n").map((l) => l.trim()).filter(Boolean);
 const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));
 
@@ -139,20 +151,42 @@ async function loadPackages() {
 
 // Apps not installed by the Play Store (APK files, other stores, patched apps).
 // The Play Store can still replace them with its own version.
-async function loadInstallers() {
-  const res = await exec("pm list packages -3 -i");
+// pm is also the live list of user apps: the manager's package list can be
+// cached, so apps installed or removed since then are added or marked here.
+async function loadInstallers(pending) {
+  const res = await (pending || exec("pm list packages -3 -i"));
   if (res.errno !== 0) return false;
-  let seen = 0;
+  const found = new Map();
   for (const l of lines(res.stdout)) {
     const m = l.match(/^package:(\S+)\s+installer=(\S*)/);
-    if (!m) continue;
-    seen++;
-    const app = apps.get(m[1]);
-    if (!app) continue;
-    app.installer = m[2];
-    if (!app.system) app.sideloaded = m[2] !== "com.android.vending";
+    if (m && PKG_RE.test(m[1])) found.set(m[1], m[2]);
   }
-  return seen > 0;
+  if (!found.size) return false;
+
+  const added = [];
+  for (const [pkg, installer] of found) {
+    let app = apps.get(pkg);
+    if (!app || !app.installed) {
+      app = { pkg, label: app ? app.label : pkg, system: false, installed: true, detached: !!(app && app.detached), sideloaded: false };
+      apps.set(pkg, app);
+      added.push(pkg);
+    }
+    app.installer = installer;
+    if (!app.system) app.sideloaded = installer !== "com.android.vending";
+  }
+  for (const [pkg, a] of apps) {
+    if (!a.installed || a.system || found.has(pkg)) continue;
+    selected.delete(pkg);
+    if (a.detached) Object.assign(a, { installed: false, sideloaded: false, installer: undefined });
+    else apps.delete(pkg);
+  }
+  if (added.length && hasPkgApi) {
+    for (const info of getPackagesInfo(added)) {
+      const app = apps.get(info.packageName);
+      if (app && info.appLabel) app.label = info.appLabel;
+    }
+  }
+  return true;
 }
 
 async function loadDetached() {
@@ -207,7 +241,11 @@ function makeRow(app) {
   meta.className = "meta";
   const name = document.createElement("div");
   name.className = "name";
-  name.textContent = app.label;
+  // The name is shortened, the badge after it always stays visible
+  const text = document.createElement("span");
+  text.className = "label";
+  text.textContent = app.label;
+  name.append(text);
   const pkg = document.createElement("div");
   pkg.className = "pkg";
   pkg.textContent = app.pkg;
@@ -300,7 +338,8 @@ function visibleApps() {
       if (q && !a.label.toLowerCase().includes(q) && !a.pkg.toLowerCase().includes(q)) return false;
       return true;
     })
-    .sort((a, b) => (b.detached - a.detached) || a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
+    // Not installed first (easy to find and remove), then detached, then by name
+    .sort((a, b) => (a.installed - b.installed) || (b.detached - a.detached) || a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
 }
 
 function emptyHtml(title, hint) {
@@ -393,7 +432,7 @@ async function toggle(app, input, row) {
   row.classList.toggle("on", on);
   input.disabled = true;
 
-  const res = await exec(`${CLI} ${on ? "add" : "remove"} ${app.pkg}`);
+  const res = await change(`${CLI} ${on ? "add" : "remove"} ${app.pkg}`);
   input.disabled = false;
 
   if (res.errno === 0) {
@@ -413,7 +452,7 @@ async function toggle(app, input, row) {
 }
 
 async function reattachAll() {
-  const res = await exec(`${CLI} clear`);
+  const res = await change(`${CLI} clear`);
   if (res.errno !== 0) {
     toast(res.stderr.trim() || t("e_clear_list"), true);
     return;
@@ -436,7 +475,7 @@ const plural = (n) => t("apps", n);
 // Adds or removes many packages with one command and one Play Store restart.
 async function bulk(pkgs, on) {
   if (pkgs.length === 0) return true;
-  const res = await exec(`${CLI} ${on ? "add" : "remove"} ${pkgs.join(" ")}`);
+  const res = await change(`${CLI} ${on ? "add" : "remove"} ${pkgs.join(" ")}`);
   if (res.errno !== 0) {
     toast(res.stderr.trim() || t("e_change_list"), true);
     return false;
@@ -749,16 +788,20 @@ async function saveBackup() {
   toast(t("t_saved", n, niceDir(file)));
 }
 
-// Automatic backup switch in the backup sheet (play-detach autobackup)
+// Automatic backup switch, in the backup sheet and in Status and settings
+// (play-detach autobackup)
 async function loadAutoBackup() {
   const res = await exec(`${CLI} autobackup`);
   const m = res.stdout.match(/Automatic backup: (on|off)/);
   $("auto-row").hidden = !m;
-  if (m) $("auto-switch").checked = m[1] === "on";
+  $("set-backup-row").hidden = !m;
+  if (m) {
+    $("auto-switch").checked = m[1] === "on";
+    $("set-backup").checked = m[1] === "on";
+  }
 }
 
-async function setAutoBackup(on) {
-  const sw = $("auto-switch");
+async function setAutoBackup(on, sw) {
   sw.disabled = true;
   const res = await exec(`${CLI} autobackup ${on ? "on" : "off"}`);
   sw.disabled = false;
@@ -767,6 +810,8 @@ async function setAutoBackup(on) {
     toast(res.stderr.trim() || t("e_auto_backup"), true);
     return;
   }
+  $("auto-switch").checked = on;
+  $("set-backup").checked = on;
   toast(on ? t("t_auto_on") : t("t_auto_off"));
 }
 
@@ -783,7 +828,7 @@ function askRestore(file) {
 
 async function restore(file) {
   $("picker").hidden = true;
-  const res = await exec(`${CLI} restore ${sq(file)}`);
+  const res = await change(`${CLI} restore ${sq(file)}`);
   if (res.errno !== 0) {
     toast(res.stderr.trim().replace(STORAGE, t("internal_storage")) || t("e_restore_backup"), true);
     return;
@@ -822,31 +867,39 @@ function relabel() {
   if (!loaded) return;
   render();
   refreshStatus();
+  if (!$("auto-note").hidden) showAutoNote();
 }
 
-// Saves the choice for the WebUI, the installer and the module description
-// shown in the root manager.
-async function chooseLang(l) {
-  if (l === I18N.lang) return;
-  I18N.set(l);
-  relabel();
+// Saves the choice for the installer, the notifications and the module
+// description shown in the root manager.
+function saveLang(l) {
   const desc = I18N.description(l);
-  await exec(
+  return exec(
     `mkdir -p /data/adb/play-detach && echo ${l} > ${LANG_FILE} && ` +
       `sed -i ${sq("s|^description=.*|description=" + desc + "|")} ${MODDIR}/module.prop`
   );
 }
 
+async function chooseLang(l) {
+  if (l === I18N.lang) return;
+  I18N.set(l);
+  relabel();
+  await saveLang(l);
+}
+
 // The page remembers the language itself; the file is the fallback when the
-// browser storage was cleared (and is what the installer reads).
+// browser storage was cleared (and is what the installer reads). Each time the
+// WebUI opens, the file and the module description are made to match the
+// language on the page, so they can never stay different.
 async function syncLangFromFile() {
-  if (I18N.hasSaved()) return;
-  const r = await exec(`cat ${LANG_FILE} 2>/dev/null`);
-  const l = r.stdout.trim();
-  if ((l === "en" || l === "ru") && l !== I18N.lang) {
-    I18N.set(l);
+  const r = await exec(`cat ${LANG_FILE} 2>/dev/null; echo; sed -n 's/^description=//p' ${MODDIR}/module.prop`);
+  const [file = "", desc = ""] = r.stdout.split("\n").map((x) => x.trim());
+  if (!I18N.hasSaved() && (file === "en" || file === "ru") && file !== I18N.lang) {
+    I18N.set(file);
     relabel();
   }
+  const l = I18N.lang;
+  if (file !== l || desc !== I18N.description(l)) await saveLang(l);
 }
 
 // ---------------------------------------------------------------------------
@@ -858,30 +911,211 @@ function setStatus(state, text) {
   $("status-text").textContent = text;
 }
 
-async function refreshStatus() {
+// Steps the module reports when it cannot start in the Play Store
+const FAIL_STEPS = ["field", "binder", "plt", "api", "list"];
+
+// Last result of play-detach status, for the Status and settings sheet
+let st = null;
+
+// One status check: the status file written by the module, the self-check
+// result saved right after the Play Store started, the Play Store version
+// saved by the background watcher, and the last module log line as a fallback.
+async function readState() {
+  const [res, log] = await Promise.all([exec(`${CLI} status`), exec("logcat -d -s PlayDetach | tail -n 1")]);
+  const kv = {};
+  for (const l of lines(res.stdout)) {
+    const m = l.match(/^(\w+)=(\S*)$/);
+    if (m) kv[m[1]] = m[2];
+  }
+  const num = (k) => Number(kv[k]) || 0;
+  const last = log.stdout.trim();
+  const s = {
+    ok: res.errno === 0 && "loaded" in kv,
+    loaded: num("loaded"),
+    listChanged: num("list_changed"),
+    storeChanged: num("store_changed"),
+    storeVersion: kv.store_version && kv.store_version !== "unknown" ? kv.store_version : "",
+    hook: kv.hook || "unknown",
+    api: num("api"),
+    autodetach: kv.autodetach === "on",
+    appsChanged: num("apps_changed"),
+    detached: "detached" in kv ? num("detached") : -1,
+    logError: /\sE PlayDetach\b/.test(last) ? last.replace(/^.*PlayDetach:\s*/, "") : "",
+    logActive: /active in Play Store/.test(last),
+  };
+
+  // state: idle | ok | warn | error, phase: none | fail | log | store | ok | pending
   const count = updateCounts();
-  if (count === 0) {
-    setStatus("idle", t("s_none"));
+  if (count === 0) Object.assign(s, { state: "idle", phase: "none" });
+  else if (FAIL_STEPS.includes(s.hook)) Object.assign(s, { state: "error", phase: "fail" });
+  else if (s.hook === "unknown" && s.logError) Object.assign(s, { state: "error", phase: "log" });
+  else if (s.storeChanged > s.loaded) Object.assign(s, { state: "warn", phase: "store" });
+  else if (s.loaded > 0 && s.loaded >= s.listChanged) Object.assign(s, { state: "ok", phase: "ok" });
+  else if (!s.loaded && s.logActive) Object.assign(s, { state: "ok", phase: "ok" });
+  else Object.assign(s, { state: "warn", phase: "pending" });
+  return s;
+}
+
+async function refreshStatus() {
+  st = await readState();
+  const n = updateCounts();
+  const why = (step) => t("why_" + step);
+  const text = {
+    none: () => t("s_none"),
+    fail: () => t("s_fail", why(st.hook)),
+    log: () => t("s_problem", st.logError),
+    store: () => t("s_store_updated", n),
+    ok: () => t("s_active", n),
+    pending: () => t("s_pending", n),
+  }[st.phase];
+  setStatus(st.state, text());
+  $("status-auto").hidden = !st.autodetach;
+  if (!$("settings").hidden) renderSettings();
+}
+
+// ---------------------------------------------------------------------------
+// Status and settings sheet, automatic detach of new sideloaded apps
+// ---------------------------------------------------------------------------
+
+const AUTO_LOG = "/data/adb/play-detach/auto.log";
+const AUTO_SEEN_KEY = "pd-auto-seen";
+let autoLog = []; // [{time, pkg}] or [{time, skip}]
+
+const when = (sec) =>
+  new Date(sec * 1000).toLocaleString(I18N.lang === "ru" ? "ru-RU" : "en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+const labelOf = (pkg) => (apps.get(pkg) && apps.get(pkg).label) || pkg;
+
+function renderSettings() {
+  if (!st) return;
+  const check = $("check");
+  check.dataset.state = st.state;
+  const title = { none: "chk_none", fail: "chk_fail", log: "chk_fail", store: "chk_wait", ok: "chk_ok", pending: "chk_wait" };
+  $("check-title").textContent = t(title[st.phase]);
+
+  const rows = [];
+  const add = (text, bad) => rows.push({ text, bad });
+  if (st.phase === "none") add(t("chk_none_line"));
+  if (st.storeVersion) add(t("chk_store", st.storeVersion));
+  if (st.storeChanged > 0) add(t("chk_store_updated", when(st.storeChanged)));
+  if (st.phase !== "none") {
+    add(st.loaded > 0 ? t("chk_last_start", when(st.loaded)) : t("chk_never"));
+    if (FAIL_STEPS.includes(st.hook)) add(t("chk_hook_fail", t("why_" + st.hook)), true);
+    else if (st.hook === "ok") add(t("chk_hook_ok", st.api));
+    else if (st.loaded > 0 || st.logError) add(t("chk_hook_unknown"));
+    if (st.phase === "log") add(st.logError, true);
+    if (st.phase === "store") add(t("chk_after_update"));
+    if (st.phase === "pending") add(t("chk_pending"));
+  }
+  const ul = $("check-lines");
+  ul.replaceChildren(
+    ...rows.map((r) => {
+      const li = document.createElement("li");
+      li.textContent = r.text;
+      if (r.bad) li.className = "bad";
+      return li;
+    })
+  );
+
+  $("ad-switch").checked = st.autodetach;
+
+  const recent = autoApps(autoLog).slice(0, 5);
+  $("recent").hidden = recent.length === 0;
+  $("recent-list").replaceChildren(
+    ...recent.map((e) => {
+      const li = document.createElement("li");
+      const name = document.createElement("span");
+      name.textContent = labelOf(e.pkg);
+      const time = document.createElement("time");
+      time.textContent = when(e.time);
+      li.append(name, time);
+      return li;
+    })
+  );
+}
+
+// Apps detached automatically, newest first, each app once (the newest time),
+// and only apps that are still installed: an app that was removed and
+// installed again is listed once.
+function autoApps(entries) {
+  const seen = new Set();
+  const out = [];
+  for (const e of [...entries].reverse()) {
+    if (!e.pkg || seen.has(e.pkg)) continue;
+    seen.add(e.pkg);
+    const a = apps.get(e.pkg);
+    if (a && a.installed) out.push(e);
+  }
+  return out;
+}
+
+async function loadAutoLog() {
+  const r = await exec(`cat ${AUTO_LOG} 2>/dev/null`);
+  autoLog = [];
+  for (const l of lines(r.stdout)) {
+    const m = l.match(/^(\d+) (?:skip (\d+)|([A-Za-z0-9_.]+))$/);
+    if (!m) continue;
+    if (m[2]) autoLog.push({ time: Number(m[1]), skip: Number(m[2]) });
+    else if (PKG_RE.test(m[3])) autoLog.push({ time: Number(m[1]), pkg: m[3] });
+  }
+}
+
+function autoSeen() {
+  try {
+    return Number(localStorage.getItem(AUTO_SEEN_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+// Note at the top of the list: apps detached automatically since the page
+// was last opened (only the last 7 days, in case the storage was cleared).
+function showAutoNote() {
+  const since = Math.max(autoSeen(), Date.now() / 1000 - 7 * 86400);
+  const fresh = autoLog.filter((e) => e.time > since);
+  const pkgs = autoApps(fresh).map((e) => labelOf(e.pkg));
+  const skipped = fresh.filter((e) => e.skip).reduce((a, e) => a + e.skip, 0);
+  const parts = [];
+  if (pkgs.length) parts.push(t("auto_note", pkgs.join(", ")));
+  if (skipped) parts.push(t("auto_note_skip", skipped));
+  $("auto-text").textContent = parts.join(" ");
+  $("auto-note").hidden = parts.length === 0;
+}
+
+function dismissAutoNote() {
+  const newest = autoLog.reduce((a, e) => Math.max(a, e.time), 0);
+  try {
+    localStorage.setItem(AUTO_SEEN_KEY, String(Math.max(newest, Math.floor(Date.now() / 1000))));
+  } catch {}
+  $("auto-note").hidden = true;
+}
+
+async function openSettings() {
+  if (!ksu || !st) return;
+  renderSettings();
+  $("settings").hidden = false;
+  loadAutoBackup();
+  await Promise.all([loadAutoLog(), refreshStatus()]);
+  renderSettings();
+}
+
+async function setAutoDetach(on) {
+  const sw = $("ad-switch");
+  sw.disabled = true;
+  const res = await change(`${CLI} autodetach ${on ? "on" : "off"}`);
+  sw.disabled = false;
+  if (res.errno !== 0 || !/Auto-detach: (on|off)/.test(res.stdout)) {
+    sw.checked = !on;
+    toast(res.stderr.trim() || t("e_ad"), true);
     return;
   }
-  const [st, log] = await Promise.all([exec(`${CLI} status`), exec("logcat -d -s PlayDetach | tail -n 1")]);
-
-  const kv = {};
-  for (const l of lines(st.stdout)) {
-    const m = l.match(/^(\w+)=(\d+)$/);
-    if (m) kv[m[1]] = Number(m[2]);
-  }
-  const last = log.stdout.trim();
-
-  if (/\sE PlayDetach\b/.test(last)) {
-    setStatus("error", t("s_problem", last.replace(/^.*PlayDetach:\s*/, "")));
-  } else if (kv.loaded > 0 && kv.loaded >= kv.list_changed) {
-    setStatus("ok", t("s_active", count));
-  } else if (!kv.loaded && /active in Play Store/.test(last)) {
-    setStatus("ok", t("s_active", count));
-  } else {
-    setStatus("warn", t("s_pending", count));
-  }
+  if (st) st.autodetach = on;
+  $("status-auto").hidden = !on;
+  toast(on ? t("t_ad_on") : t("t_ad_off"));
 }
 
 // ---------------------------------------------------------------------------
@@ -1002,7 +1236,17 @@ function setupUi() {
   });
   $("picker-ok").addEventListener("click", saveBackup);
   $("picker-name").addEventListener("input", checkName);
-  $("auto-switch").addEventListener("change", (e) => setAutoBackup(e.target.checked));
+  $("auto-switch").addEventListener("change", (e) => setAutoBackup(e.target.checked, e.target));
+  $("set-backup").addEventListener("change", (e) => setAutoBackup(e.target.checked, e.target));
+  $("ad-switch").addEventListener("change", (e) => setAutoDetach(e.target.checked));
+
+  const settings = $("settings");
+  $("status").addEventListener("click", openSettings);
+  $("settings-close").addEventListener("click", () => (settings.hidden = true));
+  settings.addEventListener("click", (e) => {
+    if (e.target === settings) settings.hidden = true;
+  });
+  $("auto-ok").addEventListener("click", dismissAutoNote);
   $("confirm-no").addEventListener("click", () => (confirm.hidden = true));
   confirm.addEventListener("click", (e) => {
     if (e.target === confirm) confirm.hidden = true;
@@ -1011,6 +1255,58 @@ function setupUi() {
     confirm.hidden = true;
     if (pending) pending();
   });
+}
+
+// ---------------------------------------------------------------------------
+// Live refresh: the status every 3 seconds while the page is on screen, and
+// right away when it comes back. If the list changed outside the page (an app
+// detached automatically, or the command line), the list is read again.
+// ---------------------------------------------------------------------------
+
+let polling = false;
+let appsStamp = -1; // apps_changed from status when the app list was last read
+
+async function reloadList() {
+  for (const [pkg, a] of apps) {
+    if (!a.installed) apps.delete(pkg);
+    else a.detached = false;
+  }
+  try {
+    await loadDetached();
+  } catch {}
+  render();
+  await loadAutoLog();
+  showAutoNote();
+}
+
+async function poll() {
+  if (polling || busy || document.hidden || !loaded) return;
+  polling = true;
+  try {
+    await refreshStatus();
+    if (!busy && st && appsStamp >= 0 && st.appsChanged !== appsStamp) {
+      // An app was installed or removed
+      appsStamp = st.appsChanged;
+      if (await loadInstallers()) sideKnown = true;
+      await reloadList();
+      await refreshStatus();
+    } else if (!busy && st && st.detached >= 0) {
+      let local = 0;
+      for (const a of apps.values()) if (a.detached) local++;
+      if (local !== st.detached) await reloadList();
+    }
+  } finally {
+    polling = false;
+  }
+}
+
+function startLive() {
+  setInterval(poll, 3000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) poll();
+  });
+  window.addEventListener("pageshow", poll);
+  window.addEventListener("focus", poll);
 }
 
 async function main() {
@@ -1034,21 +1330,27 @@ async function main() {
     }
   });
 
+  // The app list from the root manager can be out of date, so the live list
+  // from pm is read at the same time and applied before the first drawing
+  // (otherwise newly installed apps flash as "not installed").
+  const stamp = exec(`${CLI} status`).then((r) => {
+    const m = r.stdout.match(/^apps_changed=(\d+)$/m);
+    return m ? Number(m[1]) : 0;
+  });
+  const pm = stamp.then(() => exec("pm list packages -3 -i"));
   try {
     await loadPackages();
     await loadDetached();
   } catch (e) {
     setStatus("error", String(e.message || e));
   }
+  if (await loadInstallers(pm)) sideKnown = true;
+  appsStamp = await stamp;
   loaded = true;
   render();
   refreshStatus();
-
-  // Installer info comes a moment later; the list is usable meanwhile.
-  if (await loadInstallers()) {
-    sideKnown = true;
-    render();
-  }
+  loadAutoLog().then(showAutoNote);
+  startLive();
 }
 
 main();

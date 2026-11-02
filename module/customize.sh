@@ -41,6 +41,7 @@ if [ "$LANG_UI" = ru ]; then
 fi
 
 set_perm "$MODPATH/play-detach" 0 0 0755
+set_perm "$MODPATH/service.sh" 0 0 0755
 set_perm_recursive "$MODPATH/zygisk" 0 0 0755 0644
 
 mkdir -p "$DATA_DIR"

@@ -11,6 +11,17 @@ STORAGE=/data/media/0
 BACKUP_DIR="$STORAGE/Play-Detach"
 AUTO_NAME=play-detach-auto.txt
 STORE=com.android.vending
+# Auto-detach of new sideloaded apps (off unless this file exists)
+AUTO_FLAG="$DATA_DIR/auto-detach"
+SEEN="$DATA_DIR/seen.list"     # user apps found by the last scan
+AUTO_LOG="$DATA_DIR/auto.log"  # "<time> <package>" or "<time> skip <count>"
+STORE_FILE="$DATA_DIR/store"   # Play Store version, see scan
+NOTIFIED="$DATA_DIR/notified"  # status line already reported as a problem
+HOOK_FILE="$DATA_DIR/hook"     # self-check result: "hook=<step> api=<n> at=<loaded>"
+# Apps installed by these were restored from a backup, not sideloaded on
+# purpose, so they are never detached automatically.
+RESTORERS=" com.android.vending com.miui.backup org.swiftapps.swiftbackup com.machiav3lli.backup "
+MAX_AUTO=5 # more new apps than this in one scan = probably a restore, skip
 
 die() {
     echo "Error: $*" >&2
@@ -30,16 +41,44 @@ Commands:
   set [pkg...]      Replace the whole list (no packages = clear)
   clear             Re-attach everything
   import <file>     Detach packages listed in a file (one per line)
-  status            Show when the Play Store last loaded the list
+  status            Show whether the module works in the Play Store
   backup [file]     Save the list (default: Play-Detach/play-detach-backup.txt)
   restore [file]    Replace the list with a backup
   autobackup [on|off]
                     Show or change the automatic backup
+  autodetach [on|off]
+                    Show or change the automatic detach of new sideloaded
+                    apps (APK files, other stores, patched apps)
+  scan              Look for newly installed apps now (also runs on its own)
   help              Show this help
 
 Changes apply right away. The Play Store is restarted, no reboot needed.
 Each change also saves Play-Detach/play-detach-auto.txt (automatic backup).
 EOF
+}
+
+# Language of notifications: the one chosen in the WebUI (EN / RU switch).
+# The command line itself stays in English.
+ui_lang() {
+    case "$(cat "$DATA_DIR/lang" 2>/dev/null)" in
+        ru) echo ru ;;
+        *) echo en ;;
+    esac
+}
+
+# Quotes a string for sh -c
+shq() {
+    printf "'%s'" "$(echo "$1" | sed "s/'/'\\\\''/g")"
+}
+
+# notify <tag> <english> <russian>: a notification from the system shell.
+# The same tag replaces the previous notification. Posted as the shell user
+# (uid 2000): a notification posted as root is accepted but never shown.
+# Best effort only.
+notify() {
+    if [ "$(ui_lang)" = ru ]; then text=$3; else text=$2; fi
+    su 2000 -c "cmd notification post -S bigtext -t 'Play Detach' $(shq "$1") $(shq "$text")" >/dev/null 2>&1 ||
+        cmd notification post -S bigtext -t 'Play Detach' "$1" "$text" >/dev/null 2>&1
 }
 
 valid_pkg() {
@@ -136,6 +175,263 @@ restart_store() {
     am force-stop "$STORE" >/dev/null 2>&1 &
 }
 
+# Prints a variable line by line without passing it as a command argument
+# (printf is an external program in the Android shell, with a size limit).
+lines_of() {
+    cat <<EOF_LINES
+$1
+EOF_LINES
+}
+
+# Self-check: the module logs one line in every Play Store process, either
+# "active in Play Store ... API <n>" or the step that failed. Right after the
+# Play Store starts (status file changed) that line is read from the log and
+# the result is kept in $HOOK_FILE, so it does not depend on the log later
+# (the log drops old lines while the phone sleeps).
+# Prints "<step> <api>" for the newest module line at or after time $1.
+hook_from_log() {
+    since=$(($1 - 2))
+    step=
+    level=0
+    logcat -d -v epoch -s PlayDetach 2>/dev/null | {
+        while read -r ts _pid _tid lvl rest; do
+            sec=${ts%%.*}
+            case "$sec" in '' | *[!0-9]*) continue ;; esac
+            [ "$sec" -ge "$since" ] || continue
+            case "$lvl $rest" in
+                "I "*"active in Play Store"*)
+                    step=ok
+                    level=${rest##*API }
+                    ;;
+                "E "*"Android API level"*) step=api ;;
+                "E "*"not found"*) step=field ;;
+                "E "*"libbinder.so"*) step=binder ;;
+                "E "*"PLT hook"*) step=plt ;;
+                "E "*) step=list ;;
+            esac
+        done
+        case "$level" in '' | *[!0-9]*) level=0 ;; esac
+        [ -n "$step" ] && echo "$step $level"
+    }
+}
+
+# Reads the one-line status file the module writes each time the Play Store
+# starts, and the self-check result for that start. Sets loaded, packages,
+# hook (ok | api | field | binder | plt | list | unknown) and api.
+read_status() {
+    loaded=0
+    packages=0
+    hook=unknown
+    api=0
+    [ -f "$DATA_DIR/status" ] || return 0
+    for kv in $(cat "$DATA_DIR/status"); do
+        case "$kv" in
+            loaded=*) loaded=${kv#loaded=} ;;
+            packages=*) packages=${kv#packages=} ;;
+        esac
+    done
+    case "$loaded" in '' | *[!0-9]*) loaded=0 ;; esac
+    [ "$loaded" -gt 0 ] || return 0
+
+    at=0
+    h=
+    a=0
+    if [ -f "$HOOK_FILE" ]; then
+        for kv in $(cat "$HOOK_FILE"); do
+            case "$kv" in
+                hook=*) h=${kv#hook=} ;;
+                api=*) a=${kv#api=} ;;
+                at=*) at=${kv#at=} ;;
+            esac
+        done
+    fi
+    if [ "$at" != "$loaded" ]; then
+        # Not checked yet for this start: read the log now
+        res=$(hook_from_log "$loaded")
+        [ -n "$res" ] || return 0
+        h=${res% *}
+        a=${res#* }
+        echo "hook=$h api=$a at=$loaded" >"$HOOK_FILE.tmp.$$" && mv -f "$HOOK_FILE.tmp.$$" "$HOOK_FILE"
+    fi
+    hook=$h
+    api=$a
+}
+
+# Reads the Play Store version saved by scan. Sets store_code, store_name,
+# store_changed (0 = not changed since it was first seen).
+read_store() {
+    store_code=
+    store_name=
+    store_changed=0
+    [ -f "$STORE_FILE" ] || return 0
+    for kv in $(cat "$STORE_FILE"); do
+        case "$kv" in
+            code=*) store_code=${kv#code=} ;;
+            name=*) store_name=${kv#name=} ;;
+            changed=*) store_changed=${kv#changed=} ;;
+        esac
+    done
+}
+
+# Saves the Play Store version and when it last changed, so the WebUI can
+# tell that the Play Store was updated and check the module afterwards.
+scan_store() {
+    # The dump is too big for a command argument (printf is not built into
+    # the Android shell), so it is piped straight into sed.
+    vals=$(dumpsys package "$STORE" 2>/dev/null |
+        sed -n -e 's/.*versionCode=\([0-9][0-9]*\).*/C \1/p' -e 's/.*versionName=\([^ ]*\).*/N \1/p')
+    code=$(lines_of "$vals" | sed -n 's/^C //p' | head -n 1)
+    name=$(lines_of "$vals" | sed -n 's/^N //p' | head -n 1)
+    [ -n "$code" ] || return 0
+    read_store
+    if [ -z "$store_code" ]; then
+        changed=0
+    elif [ "$store_code" != "$code" ]; then
+        changed=$(date +%s)
+    else
+        changed=$store_changed
+    fi
+    [ "$store_code" = "$code" ] && [ "$store_name" = "$name" ] && return 0
+    echo "code=$code name=${name:-?} changed=$changed" >"$STORE_FILE.tmp.$$" &&
+        mv -f "$STORE_FILE.tmp.$$" "$STORE_FILE"
+}
+
+# Prints "package installer" for every user app.
+user_apps() {
+    pm list packages -3 -i 2>/dev/null |
+        sed -n 's/^package:\([^[:space:]]*\)[[:space:]]*installer=\([^[:space:]]*\).*/\1 \2/p'
+}
+
+# Finds user apps that were not there at the last scan. With auto-detach on,
+# new sideloaded apps are detached. "scan_apps snapshot" only remembers the
+# current apps (used when auto-detach is turned on, so nothing old is touched).
+scan_apps() {
+    cur=$(user_apps)
+    [ -n "$cur" ] || return 0 # package manager not ready, try next time
+    found=
+    kept=
+    n=0
+    if [ "$1" != snapshot ] && [ -f "$SEEN" ] && [ -f "$AUTO_FLAG" ]; then
+        detached=$(read_list)
+        old_ifs=$IFS
+        IFS='
+'
+        for line in $cur; do
+            pkg=${line%% *}
+            inst=${line#* }
+            valid_pkg "$pkg" || continue
+            grep -qxF "$pkg" "$SEEN" && continue
+            case "$RESTORERS" in *" $inst "*) continue ;; esac
+            n=$((n + 1))
+            # Removed and installed again while still on the list: it stays
+            # detached, only reported
+            if lines_of "$detached" | grep -qxF "$pkg"; then
+                kept="$kept $pkg"
+            else
+                found="$found $pkg"
+            fi
+        done
+        IFS=$old_ifs
+    fi
+
+    # Apps that were removed leave the automatic detach log
+    if [ -s "$AUTO_LOG" ] && [ -f "$SEEN" ]; then
+        names=$(lines_of "$cur" | cut -d' ' -f1)
+        keep=$(while read -r ts what; do
+            case "$what" in
+                skip\ *) echo "$ts $what" ;;
+                *) lines_of "$names" | grep -qxF "$what" && echo "$ts $what" ;;
+            esac
+        done <"$AUTO_LOG")
+        if [ "$keep" != "$(cat "$AUTO_LOG")" ]; then
+            if [ -n "$keep" ]; then lines_of "$keep" >"$AUTO_LOG.tmp.$$"; else : >"$AUTO_LOG.tmp.$$"; fi
+            mv -f "$AUTO_LOG.tmp.$$" "$AUTO_LOG"
+        fi
+    fi
+
+    # Remember the current apps before acting, so a failure never repeats.
+    # Written only when an app was installed or removed: the WebUI reads its
+    # time to see that the app list changed.
+    lines_of "$cur" | cut -d' ' -f1 | sed '/^$/d' | sort -u >"$SEEN.tmp.$$"
+    if cmp -s "$SEEN.tmp.$$" "$SEEN"; then
+        rm -f "$SEEN.tmp.$$"
+    else
+        mv -f "$SEEN.tmp.$$" "$SEEN"
+        chmod 600 "$SEEN" 2>/dev/null
+    fi
+
+    [ "$n" -gt 0 ] || return 0
+    now=$(date +%s)
+    if [ "$n" -gt "$MAX_AUTO" ]; then
+        echo "$now skip $n" >>"$AUTO_LOG"
+        notify play-detach-auto \
+            "$n new apps were installed at once, probably restored from a backup. They were not detached automatically. Open Play Detach to check them." \
+            "Сразу установлено $n новых приложений, вероятно восстановление из бэкапа. Они не откреплены автоматически. Проверьте их в Play Detach."
+    else
+        if [ -n "$found" ]; then
+            # shellcheck disable=SC2086 # $found is a list of checked package names
+            { read_list; printf '%s\n' $found; } | write_list
+            auto_backup
+            restart_store
+        fi
+        for p in $found $kept; do echo "$now $p" >>"$AUTO_LOG"; done
+        en=
+        ru=
+        if [ -n "$found" ]; then
+            names=$(echo $found | sed 's/ /, /g')
+            en="Detached automatically: $names. "
+            ru="Откреплено автоматически: $names. "
+            echo "Detached automatically:$found"
+        fi
+        if [ -n "$kept" ]; then
+            names=$(echo $kept | sed 's/ /, /g')
+            en="${en}Installed again and still detached: $names. "
+            ru="${ru}Установлено заново и по-прежнему откреплено: $names. "
+            echo "Still detached:$kept"
+        fi
+        notify play-detach-auto \
+            "${en}New apps installed outside the Play Store get no Play Store updates. Open Play Detach to undo." \
+            "${ru}Новые приложения, установленные вне Маркета, не обновляются через Play Маркет. Отменить можно в Play Detach."
+    fi
+    chmod 600 "$AUTO_LOG"
+    # Keep the log short
+    if [ "$(wc -l <"$AUTO_LOG")" -gt 30 ]; then
+        tail -n 30 "$AUTO_LOG" >"$AUTO_LOG.tmp.$$" && mv -f "$AUTO_LOG.tmp.$$" "$AUTO_LOG"
+    fi
+}
+
+# Only one scan at a time (the background watcher and a manual scan). A lock
+# older than two minutes is left over from a killed scan and is ignored.
+scan_lock() {
+    lock="$DATA_DIR/scan.lock"
+    if ! mkdir "$lock" 2>/dev/null; then
+        age=$(($(date +%s) - $(stat -c %Y "$lock" 2>/dev/null || echo 0)))
+        [ "$age" -gt 120 ] || return 1
+        rm -rf "$lock"
+        mkdir "$lock" 2>/dev/null || return 1
+    fi
+    trap 'rm -rf "$lock"' EXIT
+    trap 'exit 1' INT TERM
+}
+
+# Notifies once when the module stops working in the Play Store (for example
+# after a Play Store or Android update), and again only after it worked.
+check_hook() {
+    read_status
+    case "$hook" in
+        ok)
+            rm -f "$NOTIFIED"
+            return 0
+            ;;
+        unknown) return 0 ;;
+    esac
+    [ "$(cat "$NOTIFIED" 2>/dev/null)" = "$hook" ] && return 0
+    echo "$hook" >"$NOTIFIED"
+    notify play-detach-check \
+        "Play Detach does not work in the Play Store right now (step: $hook), probably after a Play Store or Android update. Detached apps can get updates again. Open Play Detach for details." \
+        "Play Detach сейчас не работает в Play Маркете (шаг: $hook), вероятно после обновления Play Маркета или Android. Откреплённые приложения снова могут обновиться. Подробности в Play Detach."
+}
+
 [ "$(id -u)" = 0 ] || die "root is required, run: su -c '/data/adb/modules/play-detach/play-detach $*'"
 
 cmd="$1"
@@ -188,23 +484,25 @@ case "$cmd" in
         ;;
     status)
         # status is written by the module each time the Play Store starts
-        loaded=0
-        packages=0
-        if [ -f "$DATA_DIR/status" ]; then
-            for kv in $(cat "$DATA_DIR/status"); do
-                case "$kv" in
-                    loaded=*) loaded=${kv#loaded=} ;;
-                    packages=*) packages=${kv#packages=} ;;
-                esac
-            done
-        fi
+        read_status
+        read_store
         list_time=$(stat -c %Y "$LIST" 2>/dev/null || echo 0)
         echo "loaded=$loaded"
         echo "loaded_packages=$packages"
         echo "list_changed=$list_time"
         echo "detached=$(read_list | wc -l)"
+        echo "hook=$hook"
+        echo "api=$api"
+        echo "store_version=${store_name:-unknown}"
+        echo "store_changed=$store_changed"
+        if [ -f "$AUTO_FLAG" ]; then echo "autodetach=on"; else echo "autodetach=off"; fi
+        echo "apps_changed=$(stat -c %Y "$SEEN" 2>/dev/null || echo 0)"
         if [ "$loaded" -eq 0 ]; then
             echo "The Play Store has not loaded the list yet."
+        elif [ "$hook" != ok ] && [ "$hook" != unknown ]; then
+            echo "Problem: the module could not start in the Play Store (step: $hook)."
+        elif [ "$store_changed" -gt "$loaded" ]; then
+            echo "The Play Store was updated, the module is checked when it opens."
         elif [ "$loaded" -ge "$list_time" ]; then
             echo "Active: the Play Store uses the current list."
         else
@@ -237,6 +535,35 @@ case "$cmd" in
         else
             echo "Automatic backup: on, $(backup_dir)/$AUTO_NAME"
         fi
+        ;;
+    autodetach)
+        case "$1" in
+            on)
+                mkdir -p "$DATA_DIR" && touch "$AUTO_FLAG"
+                # Remember the apps installed now: only apps installed from
+                # here on are detached automatically.
+                scan_lock && scan_apps snapshot
+                ;;
+            off) rm -f "$AUTO_FLAG" ;;
+            '') ;;
+            *) die "use: autodetach [on|off]" ;;
+        esac
+        if [ -f "$AUTO_FLAG" ]; then
+            echo "Auto-detach: on"
+        else
+            echo "Auto-detach: off"
+        fi
+        ;;
+    scan)
+        mkdir -p "$DATA_DIR"
+        scan_lock || die "a scan is already running"
+        scan_store
+        scan_apps
+        echo "Scan done, auto-detach is $([ -f "$AUTO_FLAG" ] && echo on || echo off)"
+        ;;
+    check)
+        # Used by the background watcher after the status file changes
+        check_hook
         ;;
     help | -h | --help | '')
         usage

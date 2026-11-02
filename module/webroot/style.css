@@ -326,7 +326,33 @@ button, input { font: inherit; color: inherit; }
 .status[data-state="idle"] .dot { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
 .status[data-state="warn"] .dot { background: var(--warn); box-shadow: 0 0 0 4px rgba(255, 196, 107, 0.15); }
 .status[data-state="error"] .dot { background: var(--danger); box-shadow: 0 0 0 4px rgba(255, 122, 138, 0.15); }
-.status .text { min-width: 0; }
+.status .text { min-width: 0; flex: 1; }
+/* The status line opens Status and settings */
+button.status {
+  width: 100%;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  padding: 2px 2px;
+  border-radius: 10px;
+}
+button.status:active { background: var(--card); }
+.status .gear { width: 17px; height: 17px; flex: none; color: var(--faint); }
+.status-auto {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent-hi);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
 
 /* ---------- List ---------- */
 main { padding: 4px 14px 120px; }
@@ -367,7 +393,9 @@ main { padding: 4px 14px 120px; }
   text-transform: uppercase;
 }
 .meta { min-width: 0; }
-.name { font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.name { display: flex; align-items: baseline; min-width: 0; font-weight: 700; font-size: 15px; white-space: nowrap; }
+.name .label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.name .badge { flex: none; }
 .pkg {
   font-family: var(--f-mono);
   font-size: 11.5px;
@@ -773,6 +801,39 @@ main { padding: 4px 14px 120px; }
 .auto-row small { font-size: 12px; color: var(--faint); }
 .app-src { font-size: 12.5px; color: var(--c-user); margin-top: 3px; }
 
+/* Note about apps detached automatically */
+.note.info {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: color-mix(in srgb, var(--accent) 9%, var(--card));
+}
+.note.info .note-btn { background: var(--accent); color: var(--accent-fg); }
+
+/* Status and settings */
+#settings .sheet { max-height: 88vh; overflow-y: auto; }
+.health {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg-deep);
+  padding: 12px 14px;
+  display: grid;
+  gap: 8px;
+}
+.health-head { display: flex; align-items: center; gap: 10px; }
+.health-head strong { font-size: 15px; }
+.health .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--accent); }
+.health[data-state="ok"] .dot { background: var(--ok); box-shadow: 0 0 0 4px rgba(111, 227, 168, 0.15); }
+.health[data-state="warn"] .dot { background: var(--warn); box-shadow: 0 0 0 4px rgba(255, 196, 107, 0.15); }
+.health[data-state="error"] { border-color: color-mix(in srgb, var(--danger) 50%, var(--line)); }
+.health[data-state="error"] .dot { background: var(--danger); box-shadow: 0 0 0 4px rgba(255, 122, 138, 0.15); }
+.health-lines { margin: 0; padding: 0 0 0 20px; display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
+.health-lines .bad { color: var(--danger); }
+.recent { display: grid; gap: 6px; }
+.recent-h { font-size: 12px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: var(--faint); }
+.recent ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.recent li { display: flex; gap: 10px; font-size: 13px; }
+.recent li span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent li time { flex: none; color: var(--faint); font-variant-numeric: tabular-nums; }
+
 /* Narrow screens: drop the action icons so every label fits */
 @media (max-width: 380px) {
   .act svg { display: none; }
@@ -803,3 +864,72 @@ html[lang="ru"] .act { font-size: 12px; }
   html[lang="ru"] .act { font-size: 11px; padding: 9px 2px; gap: 3px; }
   html[lang="ru"] .act .cnt { padding: 0 4px; }
 }
+
+/* Help: contents with numbered links and a back-to-top arrow */
+.help .toc {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: grid;
+  gap: 2px;
+}
+.toc-title {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: 6px;
+}
+.toc a {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  color: var(--fg);
+  text-decoration: none;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.toc a:active { background: var(--card-hi); }
+.help .num {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-hi);
+  font-family: var(--f-body);
+  font-size: 12.5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.help h2 .num { margin-right: 10px; vertical-align: 2px; }
+.help section { scroll-margin-top: 84px; }
+.to-top {
+  position: fixed;
+  right: 16px;
+  bottom: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: var(--accent);
+  color: var(--accent-fg);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 15;
+}
+.to-top svg { width: 22px; height: 22px; }
+.to-top.show { opacity: 1; transform: none; pointer-events: auto; }
