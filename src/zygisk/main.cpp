@@ -12,8 +12,8 @@
  * How it works:
  *   1. In the Play Store process only, the companion (running as root) sends
  *      the list of detached packages from /data/adb/play-detach/detach.list.
- *   2. A PLT hook on IPCThreadState::transact inside libbinder.so watches
- *      outgoing binder calls.
+ *   2. A PLT hook on IPCThreadState::transact inside libbinder.so, placed in
+ *      preAppSpecialize, watches outgoing binder calls.
  *   3. When the Play Store asks the PackageManager whether a detached package
  *      is enabled, the package name in the request is blanked, so the Play
  *      Store thinks the app is not installed and never offers updates for it.
@@ -433,17 +433,13 @@ class PlayDetach : public zygisk::ModuleBase {
             }
         }
 
-        active_ = store && loadListFromCompanion(api_);
-        if (!active_) unload();
-    }
-
-    void postAppSpecialize(const zygisk::AppSpecializeArgs*) override {
-        if (!active_) return;
-        if (!installHook(api_, env_)) {
-            // Nothing was hooked, so the library can be safely unloaded.
-            active_ = false;
-            unload();
-        }
+        // The hook is placed here, before specialization, while the process
+        // still has the rights of zygote. libbinder.so is already loaded, and
+        // some Zygisk implementations cannot find libraries for pltHookRegister
+        // once the process runs as the app (ReZygisk 2c1d0df stats files under
+        // /data/adb, which the app cannot reach). If nothing was hooked, the
+        // library is unloaded.
+        if (!store || !loadListFromCompanion(api_) || !installHook(api_, env_)) unload();
     }
 
     void preServerSpecialize(zygisk::ServerSpecializeArgs*) override { unload(); }
@@ -456,7 +452,6 @@ class PlayDetach : public zygisk::ModuleBase {
 
     zygisk::Api* api_ = nullptr;
     JNIEnv* env_ = nullptr;
-    bool active_ = false;
 };
 
 }  // namespace

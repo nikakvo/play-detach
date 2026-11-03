@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.3.1
+
+- Fixed: with the newest ReZygisk (from commit 2c1d0df, November 2026) the module stopped working. The status line showed "Not working: Android changed (the hook could not be placed)" and the Play Store could offer updates for detached apps again. The module now sets up its hook a moment earlier, while the Play Store process is still starting, so this ReZygisk change no longer affects it
+
 ## v1.3.0
 
 - Detach new sideloaded apps automatically: an optional switch in the new Status and settings window. Every app you install from then on from an APK file, another store or as a patched app is detached right away, with a notification and a note in the app. Apps from the Play Store and apps restored by Xiaomi Backup, Swift Backup or Neo Backup are left alone, and when many apps appear at once (a backup being restored) nothing is detached. `play-detach autodetach on` / `off` does the same
