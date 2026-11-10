@@ -95,11 +95,15 @@ function getPackagesInfo(pkgs) {
 
 // Commands that change the list. The live status refresh waits while one runs,
 // so it never redraws a switch the user just flipped.
+// They also run one after another, in the order they were tapped.
 let busy = 0;
+let changeChain = Promise.resolve();
 async function change(cmd) {
   busy++;
+  const run = changeChain.then(() => exec(cmd));
+  changeChain = run.catch(() => {});
   try {
-    return await exec(cmd);
+    return await run;
   } finally {
     busy--;
   }
@@ -590,6 +594,9 @@ function openAppSheet(app) {
   const known = app.installed && app.installer !== undefined;
   $("app-src").hidden = !known;
   if (known) $("app-src").textContent = t("installed_by", installerName(app.installer));
+  const h = app.detached ? lastChange(app.pkg) : null;
+  $("app-hist").hidden = !(h && h.what === "detach");
+  if (h && h.what === "detach") $("app-hist").textContent = t("app_hist", t("hist_detach"), when(h.time), srcText(h.src));
   $("app-ico").replaceChildren(makeIcon(app));
   $("appsheet").hidden = false;
 }
@@ -763,6 +770,7 @@ function openPicker(mode) {
   const save = mode === "save";
   $("picker-title").textContent = save ? t("save_backup") : t("choose_backup");
   $("picker-save").hidden = !save;
+  $("picker-share").hidden = !save;
   $("picker-ok").hidden = !save;
   if (save) {
     const d = new Date();
@@ -916,19 +924,35 @@ const FAIL_STEPS = ["field", "binder", "plt", "api", "list"];
 
 // Last result of play-detach status, for the Status and settings sheet
 let st = null;
+// Last module log line and the Play Store start it was read for
+let logCache = { loaded: -1, line: "" };
 
 // One status check: the status file written by the module, the self-check
 // result saved right after the Play Store started, the Play Store version
 // saved by the background watcher, and the last module log line as a fallback.
 async function readState() {
-  const [res, log] = await Promise.all([exec(`${CLI} status`), exec("logcat -d -s PlayDetach | tail -n 1")]);
+  const res = await exec(`${CLI} status`);
   const kv = {};
   for (const l of lines(res.stdout)) {
     const m = l.match(/^(\w+)=(\S*)$/);
     if (m) kv[m[1]] = m[2];
   }
+  const zm = res.stdout.match(/^zygisk=(.*)$/m);
   const num = (k) => Number(kv[k]) || 0;
-  const last = log.stdout.trim();
+  // Filtering the whole log is slow (about 2 s on a full log), so the last
+  // module line is read only when the saved self-check has no answer, and
+  // only once per Play Store start (again during the first minute, as the
+  // line can come a moment after the status file).
+  let last = "";
+  if (!(kv.hook && kv.hook !== "unknown")) {
+    const loadedAt = num("loaded");
+    const fresh = loadedAt > 0 && Date.now() / 1000 - loadedAt < 60;
+    if (logCache.loaded !== loadedAt || fresh) {
+      const log = await exec("logcat -d -s PlayDetach | tail -n 1");
+      logCache = { loaded: loadedAt, line: log.stdout.trim() };
+    }
+    last = logCache.line;
+  }
   const s = {
     ok: res.errno === 0 && "loaded" in kv,
     loaded: num("loaded"),
@@ -942,12 +966,16 @@ async function readState() {
     detached: "detached" in kv ? num("detached") : -1,
     logError: /\sE PlayDetach\b/.test(last) ? last.replace(/^.*PlayDetach:\s*/, "") : "",
     logActive: /active in Play Store/.test(last),
+    notLoaded: kv.not_loaded === "1",
+    zygisk: zm ? zm[1].trim() : "",
+    historyChanged: num("history_changed"),
   };
 
   // state: idle | ok | warn | error, phase: none | fail | log | store | ok | pending
   const count = updateCounts();
   if (count === 0) Object.assign(s, { state: "idle", phase: "none" });
   else if (FAIL_STEPS.includes(s.hook)) Object.assign(s, { state: "error", phase: "fail" });
+  else if (s.notLoaded) Object.assign(s, { state: "error", phase: "notloaded" });
   else if (s.hook === "unknown" && s.logError) Object.assign(s, { state: "error", phase: "log" });
   else if (s.storeChanged > s.loaded) Object.assign(s, { state: "warn", phase: "store" });
   else if (s.loaded > 0 && s.loaded >= s.listChanged) Object.assign(s, { state: "ok", phase: "ok" });
@@ -964,12 +992,17 @@ async function refreshStatus() {
     none: () => t("s_none"),
     fail: () => t("s_fail", why(st.hook)),
     log: () => t("s_problem", st.logError),
+    notloaded: () => t("s_notloaded"),
     store: () => t("s_store_updated", n),
     ok: () => t("s_active", n),
     pending: () => t("s_pending", n),
   }[st.phase];
   setStatus(st.state, text());
   $("status-auto").hidden = !st.autodetach;
+  if (st.historyChanged !== historyStamp) {
+    historyStamp = st.historyChanged;
+    await loadHistory();
+  }
   if (!$("settings").hidden) renderSettings();
 }
 
@@ -994,7 +1027,15 @@ function renderSettings() {
   if (!st) return;
   const check = $("check");
   check.dataset.state = st.state;
-  const title = { none: "chk_none", fail: "chk_fail", log: "chk_fail", store: "chk_wait", ok: "chk_ok", pending: "chk_wait" };
+  const title = {
+    none: "chk_none",
+    fail: "chk_fail",
+    log: "chk_fail",
+    notloaded: "chk_fail",
+    store: "chk_wait",
+    ok: "chk_ok",
+    pending: "chk_wait",
+  };
   $("check-title").textContent = t(title[st.phase]);
 
   const rows = [];
@@ -1008,6 +1049,8 @@ function renderSettings() {
     else if (st.hook === "ok") add(t("chk_hook_ok", st.api));
     else if (st.loaded > 0 || st.logError) add(t("chk_hook_unknown"));
     if (st.phase === "log") add(st.logError, true);
+    if (st.phase === "notloaded") add(t("chk_notloaded"), true);
+    if (st.zygisk) add(st.zygisk === "none" ? t("chk_zygisk_none") : t("chk_zygisk", st.zygisk), st.zygisk === "none");
     if (st.phase === "store") add(t("chk_after_update"));
     if (st.phase === "pending") add(t("chk_pending"));
   }
@@ -1022,6 +1065,8 @@ function renderSettings() {
   );
 
   $("ad-switch").checked = st.autodetach;
+  renderSkip();
+  renderHistory();
 
   const recent = autoApps(autoLog).slice(0, 5);
   $("recent").hidden = recent.length === 0;
@@ -1094,12 +1139,156 @@ function dismissAutoNote() {
   $("auto-note").hidden = true;
 }
 
+// ---------------------------------------------------------------------------
+// History of list changes (play-detach history), shown in Status and settings
+// and as "Detached on ..." in the app menu
+// ---------------------------------------------------------------------------
+
+let changes = []; // [{time, what: detach|reattach, src, pkg}], oldest first
+let historyStamp = -1;
+const SRC_KEYS = { user: "src_user", auto: "src_auto", restore: "src_restore", import: "src_import" };
+const srcText = (src) => t(SRC_KEYS[src] || "src_user");
+
+async function loadHistory() {
+  const r = await exec(`${CLI} history 200`);
+  const out = [];
+  for (const l of lines(r.stdout)) {
+    const m = l.match(/^(\d+) (detach|reattach) (\w+) ([A-Za-z0-9_.]+)$/);
+    if (m && PKG_RE.test(m[4])) out.push({ time: Number(m[1]), what: m[2], src: m[3], pkg: m[4] });
+  }
+  changes = out;
+}
+
+// The newest history entry of a package, or null
+function lastChange(pkg) {
+  for (let i = changes.length - 1; i >= 0; i--) if (changes[i].pkg === pkg) return changes[i];
+  return null;
+}
+
+function renderHistory() {
+  const recent = [...changes].reverse().slice(0, 8);
+  $("hist").hidden = recent.length === 0;
+  $("hist-list").replaceChildren(
+    ...recent.map((e) => {
+      const li = document.createElement("li");
+      if (e.what === "reattach") li.className = "re";
+      const name = document.createElement("span");
+      name.textContent = `${t(e.what === "detach" ? "hist_detach" : "hist_reattach")}: ${labelOf(e.pkg)}`;
+      const src = document.createElement("span");
+      src.className = "src";
+      src.textContent = srcText(e.src);
+      const time = document.createElement("time");
+      time.textContent = when(e.time);
+      li.append(name, src, time);
+      return li;
+    })
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Installers whose apps are never detached automatically (play-detach autoskip)
+// ---------------------------------------------------------------------------
+
+// Never detached automatically anyway (same list as RESTORERS in the CLI)
+const BUILTIN_SKIP = new Set(["com.android.vending", "com.miui.backup", "org.swiftapps.swiftbackup", "com.machiav3lli.backup"]);
+let skipSet = null; // null = not read yet
+
+async function loadSkip() {
+  const r = await exec(`${CLI} autoskip`);
+  skipSet = r.errno === 0 ? new Set(lines(r.stdout).filter((x) => PKG_RE.test(x))) : null;
+}
+
+function renderSkip() {
+  const box = $("skip");
+  if (!skipSet) {
+    box.hidden = true;
+    return;
+  }
+  const found = new Set(skipSet);
+  for (const a of apps.values()) {
+    if (a.installed && a.installer !== undefined) found.add(a.installer || "null");
+  }
+  const list = [...found].filter((i) => !BUILTIN_SKIP.has(i) && PKG_RE.test(i));
+  list.sort((x, y) => installerName(x).localeCompare(installerName(y)));
+  box.hidden = false;
+  box.classList.toggle("off", !(st && st.autodetach));
+  const rows = list.map((inst) => {
+    const row = document.createElement("label");
+    row.className = "auto-row";
+    const text = document.createElement("span");
+    const name = document.createElement("strong");
+    name.textContent = installerName(inst);
+    const pkg = document.createElement("small");
+    pkg.textContent = inst;
+    text.append(name, pkg);
+    const sw = document.createElement("span");
+    sw.className = "switch";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.setAttribute("role", "switch");
+    input.checked = skipSet.has(inst);
+    input.addEventListener("change", () => setSkip(inst, input));
+    const track = document.createElement("span");
+    track.className = "track";
+    sw.append(input, track);
+    row.append(text, sw);
+    return row;
+  });
+  if (!rows.length) {
+    const empty = document.createElement("small");
+    empty.className = "skip-hint";
+    empty.textContent = t("skip_none");
+    rows.push(empty);
+  }
+  $("skip-list").replaceChildren(...rows);
+}
+
+async function setSkip(inst, input) {
+  const on = input.checked;
+  input.disabled = true;
+  const res = await exec(`${CLI} autoskip ${on ? "add" : "remove"} ${sq(inst)}`);
+  input.disabled = false;
+  if (res.errno !== 0) {
+    input.checked = !on;
+    toast(res.stderr.trim() || t("e_skip"), true);
+    return;
+  }
+  skipSet = new Set(lines(res.stdout).filter((x) => PKG_RE.test(x)));
+  input.checked = skipSet.has(inst);
+  toast(on ? t("t_skip_on", installerName(inst)) : t("t_skip_off", installerName(inst)));
+}
+
+// ---------------------------------------------------------------------------
+// Copy or share the list as text (from the Back up sheet)
+// ---------------------------------------------------------------------------
+
+function listText() {
+  const pkgs = [...apps.values()].filter((a) => a.detached).map((a) => a.pkg).sort();
+  return { n: pkgs.length, text: `# Play Detach list, ${pkgs.length} package(s)\n${pkgs.join("\n")}\n` };
+}
+
+async function copyList() {
+  const { n, text } = listText();
+  $("picker").hidden = true;
+  toast((await copyText(text)) ? t("t_list_copied", n) : t("t_copy_failed"), false);
+}
+
+async function shareList() {
+  const { text } = listText();
+  $("picker").hidden = true;
+  const res = await exec(
+    `am start -a android.intent.action.SEND -t text/plain --es android.intent.extra.TEXT ${sq(text)} ` +
+      `--es android.intent.extra.SUBJECT 'Play Detach list'`
+  );
+  if (res.errno !== 0 || /Error/.test(res.stdout + res.stderr)) toast(t("e_share"), true);
+}
+
 async function openSettings() {
   if (!ksu || !st) return;
   renderSettings();
   $("settings").hidden = false;
   loadAutoBackup();
-  await Promise.all([loadAutoLog(), refreshStatus()]);
+  await Promise.all([loadAutoLog(), loadSkip(), loadHistory(), refreshStatus()]);
   renderSettings();
 }
 
@@ -1115,6 +1304,7 @@ async function setAutoDetach(on) {
   }
   if (st) st.autodetach = on;
   $("status-auto").hidden = !on;
+  renderSkip();
   toast(on ? t("t_ad_on") : t("t_ad_off"));
 }
 
@@ -1235,6 +1425,8 @@ function setupUi() {
     if (e.target === pickerEl) pickerEl.hidden = true;
   });
   $("picker-ok").addEventListener("click", saveBackup);
+  $("copy-list").addEventListener("click", copyList);
+  $("share-list").addEventListener("click", shareList);
   $("picker-name").addEventListener("input", checkName);
   $("auto-switch").addEventListener("change", (e) => setAutoBackup(e.target.checked, e.target));
   $("set-backup").addEventListener("change", (e) => setAutoBackup(e.target.checked, e.target));

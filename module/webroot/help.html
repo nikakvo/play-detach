@@ -62,7 +62,8 @@
       <p>Tap the status line under the tabs to open <strong>Status and settings</strong>, then turn on <strong>Detach new sideloaded apps</strong>. It is off until you turn it on. From then on every new app you install from outside the Play Store (an APK file, another store, a patched app, adb) is detached right away, so the Play Store never replaces it. Apps that were already installed are not touched.</p>
       <p>You get a notification for each one, and the next time you open Play Detach a note at the top lists the apps that were detached automatically. <strong>Auto</strong> next to the status line shows that it is on. To undo it for an app, turn its switch off as usual; it is not detached again unless you remove it and install it again.</p>
       <p>Apps installed by the Play Store and apps restored by Xiaomi Backup, Swift Backup or Neo Backup are never detached automatically. If more than 5 new apps appear at once, which usually means a backup is being restored, none of them is detached and you get a notification instead.</p>
-      <p>A small background check looks for new apps every 3 seconds. It only reads the time of one folder, and asks the system for the app list only when something was installed, updated or removed, so it does not use battery.</p>
+      <p><strong>Never auto-detach apps installed by.</strong> Under the switch, every installer found on the phone (the package installer for APK files, other stores, backup apps) has its own switch. Turn it on for a store that updates its apps itself, for example Aurora Store or F-Droid: apps it installs are then left alone.</p>
+      <p>The background check does not poll. It sleeps until Android reports that the app folder changed (Linux inotify), then asks the system for the app list once, and once more 10 seconds later. While nothing is installed or removed it does no work at all, so it does not use battery. A full check also runs once an hour, in case a change was missed.</p>
     </section>
 
     <section>
@@ -78,6 +79,7 @@
         <li><strong>Open in Play Store</strong> - opens the app's page, an easy way to check that a detached app no longer shows an Update button.</li>
         <li><strong>Select several apps</strong> - starts selecting with this app already marked.</li>
         <li><strong>Copy package name</strong> - for the command line or a <code>detach.txt</code>.</li>
+        <li><strong>Detached on</strong> - for a detached app, when it was detached and how: by you, automatically, from a backup or imported.</li>
       </ul>
     </section>
 
@@ -85,7 +87,8 @@
       <h2>Backup and restore</h2>
       <p>The module keeps its backups in its own folder, <strong>Play-Detach</strong> in internal storage (<code>/sdcard/Play-Detach</code>), created when the module is installed. If you delete that folder, backups go to <strong>Download</strong> instead; installing the module again creates the folder again.</p>
       <p>Open the <strong>Detached</strong> tab: a row of buttons appears right under the tabs. <strong>Back up</strong> opens the Play-Detach folder: change the file name if you like, or go to another folder, and tap <strong>Save here</strong>. <strong>Restore</strong> opens the same folder: tap the backup file. <strong>Re-attach all</strong> clears the whole list after you confirm.</p>
-      <p><strong>Automatic backup.</strong> After every change the list is also saved to <code>play-detach-auto.txt</code> in the same folder, and Restore shows it first as <strong>Automatic backup</strong>. An empty list never replaces it, so after Re-attach all you can still get the old list back. Turn it off or on with the <strong>Automatic backup</strong> switch in the Back up and Restore windows, or with <code>play-detach autobackup off</code> / <code>on</code>.</p>
+      <p><strong>Automatic backup.</strong> After every change the list is also saved to <code>play-detach-auto.txt</code> in the same folder, and Restore shows it first as <strong>Automatic backup</strong>. An empty list never replaces it, so after Re-attach all you can still get the old list back. Turn it off or on with the <strong>Automatic backup</strong> switch in the Back up and Restore windows, or with <code>su -c '/data/adb/modules/play-detach/play-detach autobackup off'</code> (<code>on</code> to turn it on again).</p>
+      <p><strong>Copy or share the list.</strong> The Back up window also has <strong>Copy list</strong> and <strong>Share</strong>: the list goes out as text in the same format as a backup file, for example to a messenger or to your other phone. Save it there as a <code>.txt</code> file and restore it.</p>
       <p>Restoring replaces the current list with the one in the file. Backups are plain text files with one package per line, so you can also edit them or use them as <code>detach.txt</code>. They stay on your storage when the module is removed.</p>
     </section>
 
@@ -96,9 +99,10 @@
         <li><strong>Applies when the Play Store opens</strong> - the list changed after the Play Store last started; it is saved and loads the next time the Play Store opens.</li>
         <li><strong>Play Store updated</strong> - the Play Store was updated after its last start. The module is checked again the next time the Play Store opens.</li>
         <li><strong>Not working</strong> - the module could not start in the Play Store. The message names the reason; see Troubleshooting below.</li>
+        <li><strong>Not working: Zygisk did not load the module</strong> - the Play Store that runs now started after the list was saved, but the module never reported from it. Usually Zygisk is off or broken.</li>
       </ul>
       <p><strong>Orange right after a change is normal.</strong> When you turn a switch on or off, the Play Store is closed and the new list is saved. The dot stays orange until the Play Store starts again and loads the new list, then it turns green. Open the Play Store once, or just wait until it starts in the background.</p>
-      <p>Tap the status line for <strong>Status and settings</strong>: the Play Store version and when it was last updated, when the Play Store last started, and the result of the self-check.</p>
+      <p>Tap the status line for <strong>Status and settings</strong>: the Play Store version and when it was last updated, when the Play Store last started, the result of the self-check, which Zygisk is active, and the <strong>Recent changes</strong> of the list (what was detached or re-attached, when, and by whom).</p>
     </section>
 
     <section>
@@ -127,6 +131,8 @@
         <div class="cmd"><span>Restore the automatic backup</span><pre>su -c '/data/adb/modules/play-detach/play-detach restore /sdcard/Play-Detach/play-detach-auto.txt'</pre></div>
         <div class="cmd"><span>Turn the automatic backup off (on again with on)</span><pre>su -c '/data/adb/modules/play-detach/play-detach autobackup off'</pre></div>
         <div class="cmd"><span>Detach new sideloaded apps automatically (off again with off)</span><pre>su -c '/data/adb/modules/play-detach/play-detach autodetach on'</pre></div>
+        <div class="cmd"><span>Never auto-detach apps from an installer (remove to undo)</span><pre>su -c '/data/adb/modules/play-detach/play-detach autoskip add com.aurora.store'</pre></div>
+        <div class="cmd"><span>Show the last changes of the list</span><pre>su -c '/data/adb/modules/play-detach/play-detach history'</pre></div>
         <div class="cmd"><span>Look for new apps right now</span><pre>su -c '/data/adb/modules/play-detach/play-detach scan'</pre></div>
         <div class="cmd"><span>All commands</span><pre>su -c '/data/adb/modules/play-detach/play-detach help'</pre></div>
       </div>
@@ -158,6 +164,7 @@
       <pre>su -c 'logcat -d -s PlayDetach'</pre>
       <p>A line with <strong>active in Play Store</strong> means the module works. Any other message names the step that failed, for example a missing Zygisk or a change in a new Android version.</p>
       <p>The self-check in Status and settings names the same step: <strong>the call the module uses changed</strong> (the Play Store or Android changed it), <strong>libbinder.so not found</strong> or <strong>the hook could not be placed</strong> (Android changed). These need a new version of the module.</p>
+      <p>If the status says <strong>Zygisk did not load the module</strong>, check that your Zygisk (ReZygisk, Zygisk Next, NeoZygisk or Zygisk in Magisk) is installed and enabled, and that Play Detach is enabled, then reboot. Status and settings shows which Zygisk was found.</p>
       <p>If you get no notifications, check in system settings that notifications of the <strong>Shell</strong> app are allowed; Play Detach sends them through it.</p>
     </section>
 
@@ -166,7 +173,7 @@
       <ul>
         <li><strong>Zygisk library</strong> - C++20, built with Android NDK r29 for arm64-v8a. Uses Zygisk API v4, so it runs on ReZygisk, Zygisk Next, NeoZygisk and Magisk. No third-party libraries. Every read from Play Store binder data is bounds-checked, and on anything unexpected the call is passed through untouched.</li>
         <li><strong>Command line tool</strong> - a plain shell script. The list is written to a temporary file and then swapped in, so the Play Store never reads a half-written list.</li>
-        <li><strong>Background check</strong> - a small shell loop started at boot (<code>service.sh</code>) that notices new apps, Play Store updates and failed self-checks.</li>
+        <li><strong>Background check</strong> - a small shell script started at boot (<code>service.sh</code>) that sleeps on Linux inotify events (busybox or toybox <code>inotifyd</code>) and notices new apps, Play Store updates and failed self-checks. Without inotifyd it falls back to a check every 3 seconds.</li>
         <li><strong>WebUI</strong> - plain HTML, CSS and JavaScript with no frameworks and no build step. App names and icons come from the root manager's WebUI API. Fonts are bundled, so it works offline.</li>
         <li><strong>Build</strong> - one <code>build.sh</code> script builds the whole module from source.</li>
       </ul>
@@ -213,7 +220,8 @@
       <p>Нажмите на строку статуса под вкладками, чтобы открыть <strong>Статус и настройки</strong>, и включите <strong>Откреплять новые приложения вне Маркета</strong>. Пока вы её не включите, функция выключена. После этого каждое новое приложение, установленное не из Play Маркета (APK-файл, другой магазин, пропатченное приложение, adb), сразу открепляется, и Play Маркет никогда его не заменит. Уже установленные приложения не затрагиваются.</p>
       <p>О каждом таком приложении приходит уведомление, а при следующем открытии Play Detach заметка вверху показывает, что было откреплено автоматически. Метка <strong>Авто</strong> рядом со строкой статуса показывает, что функция включена. Чтобы отменить это для приложения, просто выключите его переключатель; снова оно открепится, только если его удалить и установить заново.</p>
       <p>Приложения, установленные Play Маркетом, и приложения, восстановленные через Xiaomi Backup, Swift Backup или Neo Backup, никогда не открепляются автоматически. Если сразу появляется больше 5 новых приложений, что обычно означает восстановление из бэкапа, ни одно из них не открепляется, а вместо этого приходит уведомление.</p>
-      <p>Небольшая фоновая проверка ищет новые приложения каждые 3 секунды. Она читает только время изменения одной папки и запрашивает список приложений у системы, только когда что-то установлено, обновлено или удалено, поэтому не расходует батарею.</p>
+      <p><strong>Не откреплять автоматически приложения, установленные через.</strong> Под переключателем у каждого установщика, найденного на телефоне (установщик пакетов для APK-файлов, другие магазины, приложения для бэкапа), есть свой переключатель. Включите его для магазина, который сам обновляет свои приложения, например Aurora Store или F-Droid: тогда установленные им приложения не затрагиваются.</p>
+      <p>Фоновая проверка ничего не опрашивает. Она спит, пока Android не сообщит, что папка приложений изменилась (Linux inotify), затем один раз запрашивает список приложений у системы и ещё раз через 10 секунд. Пока ничего не устанавливается и не удаляется, она не делает никакой работы, поэтому не расходует батарею. Раз в час также выполняется полная проверка, на случай если изменение было пропущено.</p>
     </section>
 
     <section>
@@ -229,6 +237,7 @@
         <li><strong>Открыть в Play Маркете</strong> - открывает страницу приложения: так легко проверить, что у откреплённого приложения больше нет кнопки «Обновить».</li>
         <li><strong>Выбрать несколько приложений</strong> - начинает выбор, в котором это приложение уже отмечено.</li>
         <li><strong>Копировать имя пакета</strong> - для командной строки или файла <code>detach.txt</code>.</li>
+        <li><strong>Откреплено</strong> - для откреплённого приложения: когда и как оно было откреплено: вами, автоматически, из бэкапа или импортом.</li>
       </ul>
     </section>
 
@@ -236,7 +245,8 @@
       <h2>Бэкап и восстановление</h2>
       <p>Модуль хранит бэкапы в своей папке <strong>Play-Detach</strong> во внутренней памяти (<code>/sdcard/Play-Detach</code>), она создаётся при установке модуля. Если удалить эту папку, бэкапы сохраняются в <strong>Download</strong>; повторная установка модуля создаёт папку снова.</p>
       <p>Откройте вкладку <strong>Откреплённые</strong>: прямо под вкладками появится ряд кнопок. <strong>Бэкап</strong> открывает папку Play-Detach: при желании измените имя файла или перейдите в другую папку и нажмите <strong>Сохранить сюда</strong>. <strong>Восстановить</strong> открывает ту же папку: нажмите на файл бэкапа. <strong>Прикрепить все</strong> очищает весь список после подтверждения.</p>
-      <p><strong>Автоматический бэкап.</strong> После каждого изменения список также сохраняется в <code>play-detach-auto.txt</code> в той же папке, и окно восстановления показывает его первым как <strong>Автоматический бэкап</strong>. Пустой список никогда его не заменяет, поэтому после «Прикрепить все» старый список можно вернуть. Включается и выключается переключателем <strong>Автоматический бэкап</strong> в окнах бэкапа и восстановления или командой <code>play-detach autobackup off</code> / <code>on</code>.</p>
+      <p><strong>Автоматический бэкап.</strong> После каждого изменения список также сохраняется в <code>play-detach-auto.txt</code> в той же папке, и окно восстановления показывает его первым как <strong>Автоматический бэкап</strong>. Пустой список никогда его не заменяет, поэтому после «Прикрепить все» старый список можно вернуть. Включается и выключается переключателем <strong>Автоматический бэкап</strong> в окнах бэкапа и восстановления или командой <code>su -c '/data/adb/modules/play-detach/play-detach autobackup off'</code> (<code>on</code> - включить снова).</p>
+      <p><strong>Копировать или отправить список.</strong> В окне бэкапа есть также <strong>Копировать список</strong> и <strong>Поделиться</strong>: список уходит текстом в том же формате, что и файл бэкапа, например в мессенджер или на ваш другой телефон. Сохраните его там как файл <code>.txt</code> и восстановите.</p>
       <p>Восстановление заменяет текущий список списком из файла. Бэкапы - это обычные текстовые файлы, по одному пакету на строку, поэтому их можно редактировать или использовать как <code>detach.txt</code>. При удалении модуля они остаются в памяти.</p>
     </section>
 
@@ -247,9 +257,10 @@
         <li><strong>Применится при запуске Play Маркета</strong> - список изменился после последнего запуска Play Маркета; он сохранён и загрузится, когда Play Маркет откроется снова.</li>
         <li><strong>Play Маркет обновлён</strong> - Play Маркет обновился после последнего запуска. Модуль проверится снова, когда Play Маркет откроется.</li>
         <li><strong>Не работает</strong> - модуль не смог запуститься в Play Маркете. В сообщении указана причина; см. «Устранение неполадок» ниже.</li>
+        <li><strong>Не работает: Zygisk не загрузил модуль</strong> - работающий сейчас Play Маркет запущен после сохранения списка, но модуль в нём не отозвался. Обычно Zygisk выключен или сломан.</li>
       </ul>
       <p><strong>Оранжевый цвет сразу после изменения - это нормально.</strong> Когда вы переключаете приложение, Play Маркет закрывается, а новый список сохраняется. Точка остаётся оранжевой, пока Play Маркет не запустится и не загрузит новый список, затем становится зелёной. Откройте Play Маркет один раз или просто подождите, пока он запустится в фоне.</p>
-      <p>Нажмите на строку статуса, чтобы открыть <strong>Статус и настройки</strong>: версия Play Маркета и когда он обновлялся, когда он последний раз запускался и результат самопроверки.</p>
+      <p>Нажмите на строку статуса, чтобы открыть <strong>Статус и настройки</strong>: версия Play Маркета и когда он обновлялся, когда он последний раз запускался, результат самопроверки, какой Zygisk активен, и <strong>Последние изменения</strong> списка (что откреплено или прикреплено, когда и кем).</p>
     </section>
 
     <section>
@@ -278,6 +289,8 @@
         <div class="cmd"><span>Восстановить автоматический бэкап</span><pre>su -c '/data/adb/modules/play-detach/play-detach restore /sdcard/Play-Detach/play-detach-auto.txt'</pre></div>
         <div class="cmd"><span>Выключить автоматический бэкап (включить снова - on)</span><pre>su -c '/data/adb/modules/play-detach/play-detach autobackup off'</pre></div>
         <div class="cmd"><span>Автоматически откреплять новые приложения вне Маркета (выключить - off)</span><pre>su -c '/data/adb/modules/play-detach/play-detach autodetach on'</pre></div>
+        <div class="cmd"><span>Не откреплять автоматически приложения этого установщика (remove - отменить)</span><pre>su -c '/data/adb/modules/play-detach/play-detach autoskip add com.aurora.store'</pre></div>
+        <div class="cmd"><span>Показать последние изменения списка</span><pre>su -c '/data/adb/modules/play-detach/play-detach history'</pre></div>
         <div class="cmd"><span>Проверить новые приложения прямо сейчас</span><pre>su -c '/data/adb/modules/play-detach/play-detach scan'</pre></div>
         <div class="cmd"><span>Все команды</span><pre>su -c '/data/adb/modules/play-detach/play-detach help'</pre></div>
       </div>
@@ -309,6 +322,7 @@
       <pre>su -c 'logcat -d -s PlayDetach'</pre>
       <p>Строка <strong>active in Play Store</strong> означает, что модуль работает. Любое другое сообщение называет шаг, на котором произошла ошибка, например отсутствие Zygisk или изменения в новой версии Android.</p>
       <p>Самопроверка в окне «Статус и настройки» называет тот же шаг: <strong>изменился вызов, который использует модуль</strong> (его изменил Play Маркет или Android), <strong>libbinder.so не найден</strong> или <strong>не удалось установить хук</strong> (изменился Android). В этих случаях нужна новая версия модуля.</p>
+      <p>Если статус пишет <strong>Zygisk не загрузил модуль</strong>, проверьте, что ваш Zygisk (ReZygisk, Zygisk Next, NeoZygisk или Zygisk в Magisk) установлен и включён и что Play Detach включён, затем перезагрузите телефон. В окне «Статус и настройки» видно, какой Zygisk найден.</p>
       <p>Если уведомления не приходят, проверьте в настройках системы, что уведомления приложения <strong>Shell</strong> (Оболочка) разрешены; Play Detach отправляет их через него.</p>
     </section>
 
@@ -317,7 +331,7 @@
       <ul>
         <li><strong>Библиотека Zygisk</strong> - C++20, собрана с Android NDK r29 для arm64-v8a. Использует Zygisk API v4, поэтому работает на ReZygisk, Zygisk Next, NeoZygisk и Magisk. Без сторонних библиотек. Каждое чтение данных binder Play Маркета проверяется на выход за границы, а при любых неожиданных данных вызов пропускается без изменений.</li>
         <li><strong>Инструмент командной строки</strong> - обычный shell-скрипт. Список записывается во временный файл и затем подменяется, поэтому Play Маркет никогда не прочитает наполовину записанный список.</li>
-        <li><strong>Фоновая проверка</strong> - небольшой shell-цикл, запускаемый при загрузке (<code>service.sh</code>), который замечает новые приложения, обновления Play Маркета и непройденные самопроверки.</li>
+        <li><strong>Фоновая проверка</strong> - небольшой shell-скрипт, запускаемый при загрузке (<code>service.sh</code>), который спит до событий Linux inotify (<code>inotifyd</code> из busybox или toybox) и замечает новые приложения, обновления Play Маркета и непройденные самопроверки. Без inotifyd он проверяет каждые 3 секунды.</li>
         <li><strong>WebUI</strong> - чистые HTML, CSS и JavaScript без фреймворков и сборки. Названия и иконки приложений берутся из WebUI API root-менеджера. Шрифты встроены, поэтому всё работает без интернета.</li>
         <li><strong>Сборка</strong> - один скрипт <code>build.sh</code> собирает весь модуль из исходников.</li>
       </ul>

@@ -37,7 +37,7 @@ ui_print " "
 
 # Module description shown in the root manager
 if [ "$LANG_UI" = ru ]; then
-    sed -i 's|^description=.*|description=Не даёт Play Маркету обновлять выбранные вами приложения.|' "$MODPATH/module.prop"
+    sed -i 's|^description=.*|description=Не даёт Play Маркету обновлять выбранные вами приложения. Автооткрепление сторонних приложений, бэкапы и самопроверка.|' "$MODPATH/module.prop"
 fi
 
 set_perm "$MODPATH/play-detach" 0 0 0755

@@ -201,13 +201,20 @@ void companionHandler(int client) {
     uint32_t size = 0;
     char* data = nullptr;
 
+    bool tooBig = false;
     int fd = open(kListPath, O_RDONLY | O_CLOEXEC);
     if (fd >= 0) {
         struct stat st;
-        if (fstat(fd, &st) == 0 && st.st_size > 0 && static_cast<size_t>(st.st_size) <= kMaxListBytes) {
-            data = static_cast<char*>(malloc(static_cast<size_t>(st.st_size)));
-            if (data && readAll(fd, data, static_cast<size_t>(st.st_size))) {
-                size = static_cast<uint32_t>(st.st_size);
+        if (fstat(fd, &st) == 0 && st.st_size > 0) {
+            if (static_cast<size_t>(st.st_size) > kMaxListBytes) {
+                tooBig = true;
+                LOGE("detach list too big (%lld bytes, max %zu), nothing detached", static_cast<long long>(st.st_size),
+                     kMaxListBytes);
+            } else {
+                data = static_cast<char*>(malloc(static_cast<size_t>(st.st_size)));
+                if (data && readAll(fd, data, static_cast<size_t>(st.st_size))) {
+                    size = static_cast<uint32_t>(st.st_size);
+                }
             }
         }
         close(fd);
@@ -215,6 +222,9 @@ void companionHandler(int client) {
 
     if (writeAll(client, &size, sizeof(size)) && size > 0) {
         if (writeAll(client, data, size)) writeStatus(countEntries(data, size));
+    } else if (tooBig) {
+        // Lets the self-check see this start and pick up the error line above
+        writeStatus(0);
     }
     free(data);
 }

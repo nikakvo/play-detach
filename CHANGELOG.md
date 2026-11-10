@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.4.0
+
+- Much lighter in the background: the check for new apps and Play Store starts no longer wakes up every 3 seconds. It sleeps until Android reports a change (an app installed or removed, the Play Store started). Measured on a Poco F6 Pro over 10 idle minutes: 0 s of CPU and no wake-ups, before: 3.2 s and about 600 small helper programs
+- The WebUI no longer reads the whole system log every 3 seconds while it is open (that took up to 2 seconds each time on a full log)
+- Detach and re-attach are about 3 times faster (about 50 ms instead of 150 ms)
+- Fixed: two changes at almost the same moment (an automatic detach while you flip a switch, or two switches tapped very quickly) could lose one of them
+- Fixed: when the list could not be saved, the command still reported success
+- Fixed: a line with `*` in a backup or import file was accepted as an app
+- A list longer than the module can read in the Play Store (2048 apps) is refused with a clear message, and the self-check now reports a list that is too big instead of doing nothing
+- The self-check could miss a Play Store start when the module's log line came a moment late; it now tries again
+- New: the status line says when Zygisk did not load the module in the Play Store at all, and Status and settings shows which Zygisk was found
+- New: Recent changes in Status and settings, and the app menu shows when a detached app was detached and how (by you, automatically, from a backup or imported). `play-detach history` shows the same
+- New: choose installers whose apps are never detached automatically, for example Aurora Store or F-Droid, with a switch for each installer in Status and settings (or `play-detach autoskip add <installer>`)
+- New: Copy list and Share in the Back up window send the list as text, for example to another phone
+- The module's files in /data/adb are now readable by root only
+- The module description in the root manager lists the main features
+
 ## v1.3.1
 
 - Fixed: with the newest ReZygisk (from commit 2c1d0df, November 2026) the module stopped working. The status line showed "Not working: Android changed (the hook could not be placed)" and the Play Store could offer updates for detached apps again. The module now sets up its hook a moment earlier, while the Play Store process is still starting, so this ReZygisk change no longer affects it

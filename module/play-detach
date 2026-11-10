@@ -3,6 +3,20 @@
 # Copyright 2026 Tears Burn (nikakvo). Licensed under the Apache License 2.0.
 # Based on zygisk-detach by j-hc (https://github.com/j-hc/zygisk-detach).
 
+# The Android shell (mksh) starts every helper as a separate program, which
+# is slow on phones. If the root manager's busybox is there, run under its
+# shell instead, with its built-in helpers (several times faster).
+# PD_BB marks the second start, so this happens only once.
+if [ -z "$PD_BB" ]; then
+    for bb in /data/adb/ksu/bin/busybox /data/adb/magisk/busybox /data/adb/ap/bin/busybox; do
+        [ -x "$bb" ] && PD_BB=1 ASH_STANDALONE=1 exec "$bb" sh "$0" "$@"
+    done
+fi
+
+# Files are private to root, and package lists are never glob-expanded
+umask 077
+set -f
+
 DATA_DIR=/data/adb/play-detach
 LIST="$DATA_DIR/detach.list"
 # Internal storage as seen by root (/sdcard in file managers). Backups go to
@@ -18,6 +32,11 @@ AUTO_LOG="$DATA_DIR/auto.log"  # "<time> <package>" or "<time> skip <count>"
 STORE_FILE="$DATA_DIR/store"   # Play Store version, see scan
 NOTIFIED="$DATA_DIR/notified"  # status line already reported as a problem
 HOOK_FILE="$DATA_DIR/hook"     # self-check result: "hook=<step> api=<n> at=<loaded>"
+HISTORY="$DATA_DIR/history.log" # "<time> <detach|reattach> <source> <package>"
+SKIP_FILE="$DATA_DIR/auto-skip" # extra installers whose apps are never auto-detached
+# The Play Store side reads at most this many packages / bytes
+MAX_PKGS=2048
+MAX_BYTES=65536
 # Apps installed by these were restored from a backup, not sideloaded on
 # purpose, so they are never detached automatically.
 RESTORERS=" com.android.vending com.miui.backup org.swiftapps.swiftbackup com.machiav3lli.backup "
@@ -49,6 +68,10 @@ Commands:
   autodetach [on|off]
                     Show or change the automatic detach of new sideloaded
                     apps (APK files, other stores, patched apps)
+  autoskip [add|remove <installer>]
+                    Show or change the installers whose apps are never
+                    detached automatically
+  history [n]       Show the last n changes of the list (default 20)
   scan              Look for newly installed apps now (also runs on its own)
   help              Show this help
 
@@ -117,8 +140,64 @@ read_list() {
     tr -d '\r' <"$LIST" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^$/d' -e '/^#/d'
 }
 
+# Locks are directories (mkdir is atomic). They are removed when the command
+# ends, and one older than $3 seconds is left over from a killed command.
+LOCKS=
+cleanup() {
+    for l in $LOCKS; do rm -rf "$l"; done
+}
+trap cleanup EXIT
+trap 'exit 1' INT TERM HUP
+
+# take_lock <dir> <tries, 0.1 s apart> <stale after seconds>
+take_lock() {
+    l=$1
+    tries=$2
+    mkdir -p "$DATA_DIR" 2>/dev/null
+    while ! mkdir "$l" 2>/dev/null; do
+        now=$(date +%s)
+        age=$((now - $(stat -c %Y "$l" 2>/dev/null || echo "$now")))
+        if [ "$age" -gt "$3" ]; then
+            rm -rf "$l"
+            continue
+        fi
+        [ "$tries" -gt 0 ] || return 1
+        tries=$((tries - 1))
+        sleep 0.1
+    done
+    LOCKS="$LOCKS $l"
+}
+
+# Every change of the list holds this lock from reading the old list to
+# writing the new one, so two changes at the same moment never lose one.
+list_lock() {
+    take_lock "$DATA_DIR/list.lock" 100 30 || die "the list is busy, try again"
+}
+
+# Appends what changed between the old list file $2 and the new one $3 to
+# the history, in one awk run. The history is cut to its last 200 lines by
+# scan (trim_history), so a change costs no extra step for that.
+log_changes() {
+    awk -v now="$(date +%s)" -v src="$1" '
+        { sub(/\r$/, ""); sub(/^[ \t]+/, ""); sub(/[ \t]+$/, "") }
+        $0 == "" || /^#/ { next }
+        FILENAME == ARGV[1] { old[$0] = 1; next }
+        { new[$0] = 1; if (!($0 in old)) print now " detach " src " " $0 }
+        END { for (p in old) if (!(p in new)) print now " reattach " src " " p }
+    ' "$2" "$3" >>"$HISTORY" 2>/dev/null
+}
+
+trim_history() {
+    [ -f "$HISTORY" ] || return 0
+    if [ "$(wc -l <"$HISTORY")" -gt 200 ]; then
+        tail -n 200 "$HISTORY" >"$HISTORY.tmp.$$" && mv -f "$HISTORY.tmp.$$" "$HISTORY"
+    fi
+}
+
 # Replaces the list with stdin (sorted, unique) using an atomic rename, so the
-# Play Store never reads a half-written file.
+# Play Store never reads a half-written file. $1 = who changed it (user, auto,
+# import, restore), kept in the history. Callers hold list_lock and must
+# check the result: in a pipeline die only ends this function's subshell.
 write_list() {
     mkdir -p "$DATA_DIR" || die "cannot create $DATA_DIR"
     chmod 700 "$DATA_DIR"
@@ -127,6 +206,14 @@ write_list() {
         rm -f "$tmp"
         die "cannot write $tmp"
     }
+    # shellcheck disable=SC2046 # "lines bytes"
+    set -- "${1:-user}" $(wc -lc <"$tmp")
+    if [ "$2" -gt "$MAX_PKGS" ] || [ "$3" -gt "$MAX_BYTES" ]; then
+        rm -f "$tmp"
+        die "too many packages: $2 (the Play Store side reads at most $MAX_PKGS, 64 KB)"
+    fi
+    # Old list vs new one, before the new one replaces it
+    if [ -f "$LIST" ]; then log_changes "$1" "$LIST" "$tmp"; else log_changes "$1" /dev/null "$tmp"; fi
     chmod 600 "$tmp"
     mv -f "$tmp" "$LIST" || {
         rm -f "$tmp"
@@ -246,9 +333,15 @@ read_status() {
         done
     fi
     if [ "$at" != "$loaded" ]; then
-        # Not checked yet for this start: read the log now
+        # Not checked yet for this start: read the log now (slow: the whole
+        # log is filtered, about 2 s on a full log)
         res=$(hook_from_log "$loaded")
-        [ -n "$res" ] || return 0
+        if [ -z "$res" ]; then
+            # No line yet. A minute after the start it will not come any
+            # more: remember "unknown", so the log is not read on every call.
+            [ $(($(date +%s) - loaded)) -gt 60 ] || return 0
+            res="unknown 0"
+        fi
         h=${res% *}
         a=${res#* }
         echo "hook=$h api=$a at=$loaded" >"$HOOK_FILE.tmp.$$" && mv -f "$HOOK_FILE.tmp.$$" "$HOOK_FILE"
@@ -313,6 +406,7 @@ scan_apps() {
     n=0
     if [ "$1" != snapshot ] && [ -f "$SEEN" ] && [ -f "$AUTO_FLAG" ]; then
         detached=$(read_list)
+        skip=" $RESTORERS $(tr '\n' ' ' 2>/dev/null <"$SKIP_FILE") "
         old_ifs=$IFS
         IFS='
 '
@@ -321,7 +415,7 @@ scan_apps() {
             inst=${line#* }
             valid_pkg "$pkg" || continue
             grep -qxF "$pkg" "$SEEN" && continue
-            case "$RESTORERS" in *" $inst "*) continue ;; esac
+            case "$skip" in *" $inst "*) continue ;; esac
             n=$((n + 1))
             # Removed and installed again while still on the list: it stays
             # detached, only reported
@@ -369,8 +463,9 @@ scan_apps() {
             "Сразу установлено $n новых приложений, вероятно восстановление из бэкапа. Они не откреплены автоматически. Проверьте их в Play Detach."
     else
         if [ -n "$found" ]; then
+            list_lock
             # shellcheck disable=SC2086 # $found is a list of checked package names
-            { read_list; printf '%s\n' $found; } | write_list
+            { read_list; printf '%s\n' $found; } | write_list auto || return 1
             auto_backup
             restart_store
         fi
@@ -403,15 +498,49 @@ scan_apps() {
 # Only one scan at a time (the background watcher and a manual scan). A lock
 # older than two minutes is left over from a killed scan and is ignored.
 scan_lock() {
-    lock="$DATA_DIR/scan.lock"
-    if ! mkdir "$lock" 2>/dev/null; then
-        age=$(($(date +%s) - $(stat -c %Y "$lock" 2>/dev/null || echo 0)))
-        [ "$age" -gt 120 ] || return 1
-        rm -rf "$lock"
-        mkdir "$lock" 2>/dev/null || return 1
+    take_lock "$DATA_DIR/scan.lock" 0 120
+}
+
+# Start time (epoch) of the running Play Store, 0 if it does not run.
+store_started() {
+    pid=$(pidof "$STORE" 2>/dev/null)
+    pid=${pid%% *}
+    sl=
+    [ -n "$pid" ] && read -r sl 2>/dev/null <"/proc/$pid/stat"
+    [ -n "$sl" ] || {
+        echo 0
+        return
+    }
+    # shellcheck disable=SC2086 # word splitting of /proc/<pid>/stat is wanted
+    set -- $sl
+    # field 22 = start time in clock ticks after boot (100 per second)
+    echo $((boot + ${22} / 100))
+}
+
+# Name and version of the active Zygisk, "none" if none was found.
+# rezygisk = ReZygisk; zygisksu = Zygisk Next and NeoZygisk (same module id,
+# the name comes from their module.prop); zygisknextsu = a Zygisk Next fork.
+zygisk_name() {
+    for id in rezygisk zygisksu zygisknextsu; do
+        d=/data/adb/modules/$id
+        [ -f "$d/module.prop" ] && [ ! -f "$d/disable" ] && [ ! -f "$d/remove" ] || continue
+        n=
+        v=
+        while IFS= read -r line; do
+            case "$line" in
+                name=*) [ -n "$n" ] || n=${line#name=} ;;
+                version=*) [ -n "$v" ] || v=${line#version=} ;;
+            esac
+        done <"$d/module.prop"
+        echo "${n:-$id} $v"
+        return
+    done
+    if command -v magisk >/dev/null 2>&1 &&
+        [ "$(magisk --sqlite "SELECT value FROM settings WHERE key='zygisk'" 2>/dev/null)" = value=1 ]; then
+        echo "Magisk Zygisk"
+        return
     fi
-    trap 'rm -rf "$lock"' EXIT
-    trap 'exit 1' INT TERM
+    echo none
 }
 
 # Notifies once when the module stops working in the Play Store (for example
@@ -444,7 +573,8 @@ case "$cmd" in
     add)
         [ $# -gt 0 ] || die "no package given"
         check_pkgs "$@"
-        { read_list; printf '%s\n' "$@"; } | write_list
+        list_lock
+        { read_list; printf '%s\n' "$@"; } | write_list user || exit 1
         auto_backup
         restart_store
         for p in "$@"; do echo "Detached: $p"; done
@@ -452,24 +582,27 @@ case "$cmd" in
     remove)
         [ $# -gt 0 ] || die "no package given"
         check_pkgs "$@"
+        list_lock
         current=$(read_list)
         for p in "$@"; do
             current=$(printf '%s\n' "$current" | grep -vxF "$p")
         done
-        printf '%s\n' "$current" | sed '/^$/d' | write_list
+        printf '%s\n' "$current" | sed '/^$/d' | write_list user || exit 1
         auto_backup
         restart_store
         for p in "$@"; do echo "Re-attached: $p"; done
         ;;
     set)
         check_pkgs "$@"
-        if [ $# -gt 0 ]; then printf '%s\n' "$@"; else :; fi | write_list
+        list_lock
+        if [ $# -gt 0 ]; then printf '%s\n' "$@"; else :; fi | write_list user || exit 1
         auto_backup
         restart_store
         echo "Detached $# package(s)"
         ;;
     clear)
-        : | write_list
+        list_lock
+        : | write_list user || exit 1
         restart_store
         echo "All apps re-attached"
         ;;
@@ -477,7 +610,8 @@ case "$cmd" in
         [ -f "$1" ] || die "file not found: $1"
         pkgs=$(read_pkg_file "$1") || exit 1
         [ -n "$pkgs" ] || die "no packages in $1"
-        { read_list; printf '%s\n' "$pkgs"; } | write_list
+        list_lock
+        { read_list; lines_of "$pkgs"; } | write_list import || exit 1
         auto_backup
         restart_store
         echo "Imported $(printf '%s\n' "$pkgs" | wc -l) package(s)"
@@ -487,20 +621,38 @@ case "$cmd" in
         read_status
         read_store
         list_time=$(stat -c %Y "$LIST" 2>/dev/null || echo 0)
+        count=$(read_list | wc -l)
+        read -r up _ </proc/uptime
+        boot=$(($(date +%s) - ${up%.*}))
+        started=$(store_started)
+        # The running Play Store started after the list was saved, but the
+        # module did not report from it: Zygisk did not load the module.
+        notloaded=0
+        if [ "$count" -gt 0 ] && [ "$started" -gt 0 ] && [ "$list_time" -lt "$started" ] &&
+            [ "$loaded" -lt $((started - 5)) ]; then
+            notloaded=1
+        fi
         echo "loaded=$loaded"
         echo "loaded_packages=$packages"
         echo "list_changed=$list_time"
-        echo "detached=$(read_list | wc -l)"
+        echo "detached=$count"
         echo "hook=$hook"
         echo "api=$api"
         echo "store_version=${store_name:-unknown}"
         echo "store_changed=$store_changed"
         if [ -f "$AUTO_FLAG" ]; then echo "autodetach=on"; else echo "autodetach=off"; fi
         echo "apps_changed=$(stat -c %Y "$SEEN" 2>/dev/null || echo 0)"
-        if [ "$loaded" -eq 0 ]; then
-            echo "The Play Store has not loaded the list yet."
-        elif [ "$hook" != ok ] && [ "$hook" != unknown ]; then
+        echo "history_changed=$(stat -c %Y "$HISTORY" 2>/dev/null || echo 0)"
+        echo "boot=$boot"
+        echo "store_started=$started"
+        echo "not_loaded=$notloaded"
+        echo "zygisk=$(zygisk_name)"
+        if [ "$hook" != ok ] && [ "$hook" != unknown ]; then
             echo "Problem: the module could not start in the Play Store (step: $hook)."
+        elif [ "$notloaded" = 1 ]; then
+            echo "Problem: the module did not load in the running Play Store. Is Zygisk active?"
+        elif [ "$loaded" -eq 0 ]; then
+            echo "The Play Store has not loaded the list yet."
         elif [ "$store_changed" -gt "$loaded" ]; then
             echo "The Play Store was updated, the module is checked when it opens."
         elif [ "$loaded" -ge "$list_time" ]; then
@@ -518,7 +670,8 @@ case "$cmd" in
         file="${1:-$(backup_dir)/play-detach-backup.txt}"
         [ -f "$file" ] || die "backup not found: $file"
         pkgs=$(read_pkg_file "$file") || exit 1
-        printf '%s\n' "$pkgs" | sed '/^$/d' | write_list
+        list_lock
+        lines_of "$pkgs" | sed '/^$/d' | write_list restore || exit 1
         auto_backup
         restart_store
         echo "Restored $(read_list | wc -l) package(s) from $file"
@@ -554,11 +707,34 @@ case "$cmd" in
             echo "Auto-detach: off"
         fi
         ;;
+    history)
+        n=${1:-20}
+        case "$n" in '' | *[!0-9]*) die "use: history [count]" ;; esac
+        [ -f "$HISTORY" ] && tail -n "$n" "$HISTORY"
+        ;;
+    autoskip)
+        case "$1" in
+            add | remove)
+                [ -n "$2" ] && valid_pkg "$2" || die "invalid installer name: '$2'"
+                take_lock "$DATA_DIR/skip.lock" 50 30 || die "busy, try again"
+                {
+                    cat "$SKIP_FILE" 2>/dev/null
+                    [ "$1" = add ] && echo "$2"
+                } | sed '/^$/d' | sort -u | { if [ "$1" = remove ]; then grep -vxF "$2"; else cat; fi; } >"$SKIP_FILE.tmp.$$"
+                mv -f "$SKIP_FILE.tmp.$$" "$SKIP_FILE" || die "cannot write $SKIP_FILE"
+                ;;
+            '' | list) ;;
+            *) die "use: autoskip [add|remove <installer>]" ;;
+        esac
+        cat "$SKIP_FILE" 2>/dev/null
+        exit 0
+        ;;
     scan)
         mkdir -p "$DATA_DIR"
         scan_lock || die "a scan is already running"
         scan_store
         scan_apps
+        trim_history
         echo "Scan done, auto-detach is $([ -f "$AUTO_FLAG" ] && echo on || echo off)"
         ;;
     check)

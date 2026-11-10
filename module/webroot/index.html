@@ -132,6 +132,7 @@
           <h2 id="app-title">App</h2>
           <div class="pkg" id="app-pkg"></div>
           <div class="app-src" id="app-src" hidden></div>
+          <div class="app-hist" id="app-hist" hidden></div>
         </div>
       </div>
       <div class="menu">
@@ -164,6 +165,13 @@
         <input id="picker-name" type="text" spellcheck="false" autocomplete="off" autocapitalize="off">
         <div class="picker-warn" id="picker-warn" data-i18n="file_exists" hidden>A file with this name is already here and will be replaced.</div>
       </div>
+      <div class="picker-share" id="picker-share" hidden>
+        <small data-i18n="share_hint">Or send the list as text, for example to another phone</small>
+        <div class="share-btns">
+          <button class="btn ghost" id="copy-list" type="button" data-i18n="copy_list">Copy list</button>
+          <button class="btn ghost" id="share-list" type="button" data-i18n="share_list">Share</button>
+        </div>
+      </div>
       <label class="auto-row" id="auto-row" hidden>
         <span><strong data-i18n="auto_backup">Automatic backup</strong><small data-i18n="auto_backup_hint">Saves play-detach-auto.txt to Play-Detach after every change</small></span>
         <span class="switch"><input type="checkbox" role="switch" id="auto-switch"><span class="track"></span></span>
@@ -186,6 +194,11 @@
         <span><strong data-i18n="ad_title">Detach new sideloaded apps</strong><small data-i18n="ad_hint">Apps you install from an APK file, another store or as a patched app are detached right away, with a notification</small></span>
         <span class="switch"><input type="checkbox" role="switch" id="ad-switch"><span class="track"></span></span>
       </label>
+      <div class="skip" id="skip" hidden>
+        <div class="recent-h" data-i18n="skip_title">Never auto-detach apps installed by</div>
+        <small class="skip-hint" data-i18n="skip_hint">Turn on for stores that update their apps themselves</small>
+        <div class="skip-list" id="skip-list"></div>
+      </div>
       <label class="auto-row" id="set-backup-row" hidden>
         <span><strong data-i18n="auto_backup">Automatic backup</strong><small data-i18n="auto_backup_hint">Saves play-detach-auto.txt to Play-Detach after every change</small></span>
         <span class="switch"><input type="checkbox" role="switch" id="set-backup"><span class="track"></span></span>
@@ -193,6 +206,10 @@
       <div class="recent" id="recent" hidden>
         <div class="recent-h" data-i18n="recent_title">Detached automatically</div>
         <ul id="recent-list"></ul>
+      </div>
+      <div class="recent" id="hist" hidden>
+        <div class="recent-h" data-i18n="hist_title">Recent changes</div>
+        <ul id="hist-list"></ul>
       </div>
       <div class="actions">
         <button class="btn ghost" id="settings-close" type="button" data-i18n="close">Close</button>
