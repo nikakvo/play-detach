@@ -30,7 +30,7 @@ The Play Store updates apps on its own, even when auto-update is turned off for 
 ## Requirements
 
 - arm64 device with Android 10 or newer
-- A working Zygisk: ReZygisk, Zygisk Next or NeoZygisk on KernelSU, SukiSU-Ultra or APatch, or Zygisk enabled in Magisk
+- A working Zygisk: ReZygisk, Zygisk Next or NeoZygisk on KernelSU, SukiSU-Ultra or APatch, the built-in Zygisk of SukiSU-Ultra, or Zygisk enabled in Magisk
 - zygisk-detach must not run at the same time, both modules change the same Play Store calls. If it is installed, Play Detach copies its detached apps during install and offers to remove it (Vol+), keep it (Vol-), or disables it if no key is pressed
 
 ## Install

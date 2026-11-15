@@ -30,7 +30,7 @@ Play Маркет обновляет приложения самостоятел
 ## Требования
 
 - Устройство arm64 с Android 10 или новее
-- Работающий Zygisk: ReZygisk, Zygisk Next или NeoZygisk на KernelSU, SukiSU-Ultra или APatch, либо включённый Zygisk в Magisk
+- Работающий Zygisk: ReZygisk, Zygisk Next или NeoZygisk на KernelSU, SukiSU-Ultra или APatch, встроенный Zygisk SukiSU-Ultra, либо включённый Zygisk в Magisk
 - Модуль zygisk-detach не должен работать одновременно, так как оба модуля изменяют одни и те же вызовы Play Маркета. Если он установлен, Play Detach во время установки копирует его откреплённые приложения и предлагает удалить его (Громкость +), оставить (Громкость -) или отключает его, если кнопка не нажата
 
 ## Установка

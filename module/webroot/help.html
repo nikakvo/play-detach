@@ -153,7 +153,7 @@
       <h2>Requirements</h2>
       <ul>
         <li>arm64 device with Android 10 or newer</li>
-        <li>A working Zygisk: ReZygisk, Zygisk Next or NeoZygisk on KernelSU, SukiSU-Ultra or APatch, or Zygisk enabled in Magisk</li>
+        <li>A working Zygisk: ReZygisk, Zygisk Next or NeoZygisk on KernelSU, SukiSU-Ultra or APatch, the built-in Zygisk of SukiSU-Ultra, or Zygisk enabled in Magisk</li>
         <li>zygisk-detach must not run at the same time, both modules change the same Play Store calls. If it is installed, Play Detach copies its detached apps during install and offers to remove it (Vol+), keep it (Vol-), or disables it if no key is pressed</li>
       </ul>
     </section>
@@ -164,7 +164,7 @@
       <pre>su -c 'logcat -d -s PlayDetach'</pre>
       <p>A line with <strong>active in Play Store</strong> means the module works. Any other message names the step that failed, for example a missing Zygisk or a change in a new Android version.</p>
       <p>The self-check in Status and settings names the same step: <strong>the call the module uses changed</strong> (the Play Store or Android changed it), <strong>libbinder.so not found</strong> or <strong>the hook could not be placed</strong> (Android changed). These need a new version of the module.</p>
-      <p>If the status says <strong>Zygisk did not load the module</strong>, check that your Zygisk (ReZygisk, Zygisk Next, NeoZygisk or Zygisk in Magisk) is installed and enabled, and that Play Detach is enabled, then reboot. Status and settings shows which Zygisk was found.</p>
+      <p>If the status says <strong>Zygisk did not load the module</strong>, check that your Zygisk (ReZygisk, Zygisk Next, NeoZygisk, the SukiSU built-in Zygisk or Zygisk in Magisk) is installed and enabled, and that Play Detach is enabled, then reboot. Status and settings shows which Zygisk was found.</p>
       <p>If you get no notifications, check in system settings that notifications of the <strong>Shell</strong> app are allowed; Play Detach sends them through it.</p>
     </section>
 
@@ -311,7 +311,7 @@
       <h2>Требования</h2>
       <ul>
         <li>Устройство arm64 с Android 10 или новее</li>
-        <li>Рабочий Zygisk: ReZygisk, Zygisk Next или NeoZygisk на KernelSU, SukiSU-Ultra или APatch, либо включённый Zygisk в Magisk</li>
+        <li>Рабочий Zygisk: ReZygisk, Zygisk Next или NeoZygisk на KernelSU, SukiSU-Ultra или APatch, встроенный Zygisk SukiSU-Ultra, либо включённый Zygisk в Magisk</li>
         <li>zygisk-detach не должен работать одновременно, оба модуля изменяют одни и те же вызовы Play Маркета. Если он установлен, Play Detach при установке копирует его откреплённые приложения и предлагает удалить его (Vol+), оставить (Vol-), а если клавиша не нажата, отключает его</li>
       </ul>
     </section>
@@ -322,7 +322,7 @@
       <pre>su -c 'logcat -d -s PlayDetach'</pre>
       <p>Строка <strong>active in Play Store</strong> означает, что модуль работает. Любое другое сообщение называет шаг, на котором произошла ошибка, например отсутствие Zygisk или изменения в новой версии Android.</p>
       <p>Самопроверка в окне «Статус и настройки» называет тот же шаг: <strong>изменился вызов, который использует модуль</strong> (его изменил Play Маркет или Android), <strong>libbinder.so не найден</strong> или <strong>не удалось установить хук</strong> (изменился Android). В этих случаях нужна новая версия модуля.</p>
-      <p>Если статус пишет <strong>Zygisk не загрузил модуль</strong>, проверьте, что ваш Zygisk (ReZygisk, Zygisk Next, NeoZygisk или Zygisk в Magisk) установлен и включён и что Play Detach включён, затем перезагрузите телефон. В окне «Статус и настройки» видно, какой Zygisk найден.</p>
+      <p>Если статус пишет <strong>Zygisk не загрузил модуль</strong>, проверьте, что ваш Zygisk (ReZygisk, Zygisk Next, NeoZygisk, встроенный Zygisk SukiSU или Zygisk в Magisk) установлен и включён и что Play Detach включён, затем перезагрузите телефон. В окне «Статус и настройки» видно, какой Zygisk найден.</p>
       <p>Если уведомления не приходят, проверьте в настройках системы, что уведомления приложения <strong>Shell</strong> (Оболочка) разрешены; Play Detach отправляет их через него.</p>
     </section>
 

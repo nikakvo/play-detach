@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.4.1
+
+- Status and settings now recognises the built-in Zygisk of SukiSU-Ultra instead of saying that no Zygisk was found. Detaching itself already worked with it
+
 ## v1.4.0
 
 - Much lighter in the background: the check for new apps and Play Store starts no longer wakes up every 3 seconds. It sleeps until Android reports a change (an app installed or removed, the Play Store started). Measured on a Poco F6 Pro over 10 idle minutes: 0 s of CPU and no wake-ups, before: 3.2 s and about 600 small helper programs

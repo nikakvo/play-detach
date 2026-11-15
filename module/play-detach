@@ -520,21 +520,37 @@ store_started() {
 # Name and version of the active Zygisk, "none" if none was found.
 # rezygisk = ReZygisk; zygisksu = Zygisk Next and NeoZygisk (same module id,
 # the name comes from their module.prop); zygisknextsu = a Zygisk Next fork.
+# Prints "name version" from a module.prop (first name= / version= line),
+# or nothing when the file is missing or has no name.
+prop_name() {
+    [ -f "$1" ] || return 1
+    n=
+    v=
+    while IFS= read -r line; do
+        case "$line" in
+            name=*) [ -n "$n" ] || n=${line#name=} ;;
+            version=*) [ -n "$v" ] || v=${line#version=} ;;
+        esac
+    done <"$1"
+    [ -n "$n" ] || return 1
+    echo "$n $v"
+}
+
 zygisk_name() {
     for id in rezygisk zygisksu zygisknextsu; do
         d=/data/adb/modules/$id
         [ -f "$d/module.prop" ] && [ ! -f "$d/disable" ] && [ ! -f "$d/remove" ] || continue
-        n=
-        v=
-        while IFS= read -r line; do
-            case "$line" in
-                name=*) [ -n "$n" ] || n=${line#name=} ;;
-                version=*) [ -n "$v" ] || v=${line#version=} ;;
-            esac
-        done <"$d/module.prop"
-        echo "${n:-$id} $v"
+        prop_name "$d/module.prop" || echo "$id"
         return
     done
+    # SukiSU-Ultra built-in Zygisk (ksud, no module): on while this flag file
+    # exists. ksud stages its module.prop in /data/adb/ksu/zygisk/.
+    if [ -f /data/adb/ksu/.builtin_zygisk ]; then
+        z=$(prop_name /data/adb/ksu/zygisk/module.prop) ||
+            z=$(prop_name /data/system/nyazygisk/module.prop) || z=
+        echo "SukiSU built-in Zygisk${z:+ ($z)}"
+        return
+    fi
     if command -v magisk >/dev/null 2>&1 &&
         [ "$(magisk --sqlite "SELECT value FROM settings WHERE key='zygisk'" 2>/dev/null)" = value=1 ]; then
         echo "Magisk Zygisk"

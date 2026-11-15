@@ -1,7 +1,7 @@
 id=play-detach
 name=Play Detach
-version=v1.4.0
-versionCode=11
+version=v1.4.1
+versionCode=12
 author=Tears Burn
 description=Stops the Play Store from updating the apps you choose. Auto-detach of sideloaded apps, backups and a self-check.
 updateJson=https://raw.githubusercontent.com/nikakvo/play-detach/main/update.json
