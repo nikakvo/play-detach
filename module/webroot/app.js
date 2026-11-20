@@ -857,7 +857,7 @@ async function restore(file) {
 }
 
 // ---------------------------------------------------------------------------
-// Language (EN / RU)
+// Language (EN / RU / ZH)
 // ---------------------------------------------------------------------------
 
 const LANG_FILE = "/data/adb/play-detach/lang";
@@ -902,7 +902,7 @@ async function chooseLang(l) {
 async function syncLangFromFile() {
   const r = await exec(`cat ${LANG_FILE} 2>/dev/null; echo; sed -n 's/^description=//p' ${MODDIR}/module.prop`);
   const [file = "", desc = ""] = r.stdout.split("\n").map((x) => x.trim());
-  if (!I18N.hasSaved() && (file === "en" || file === "ru") && file !== I18N.lang) {
+  if (!I18N.hasSaved() && I18N.isLang(file) && file !== I18N.lang) {
     I18N.set(file);
     relabel();
   }
@@ -1015,7 +1015,7 @@ const AUTO_SEEN_KEY = "pd-auto-seen";
 let autoLog = []; // [{time, pkg}] or [{time, skip}]
 
 const when = (sec) =>
-  new Date(sec * 1000).toLocaleString(I18N.lang === "ru" ? "ru-RU" : "en-GB", {
+  new Date(sec * 1000).toLocaleString(I18N.locale(), {
     day: "numeric",
     month: "short",
     hour: "2-digit",

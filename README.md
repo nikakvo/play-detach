@@ -1,6 +1,7 @@
 <p align="center">
   <b>English</b> | 
-  <a href="/README_ru.md">Русский</a>
+  <a href="README_ru.md">Русский</a> | 
+  <a href="README_zh.md">中文</a>
 </p>
 <hr>
 
@@ -24,7 +25,7 @@ The Play Store updates apps on its own, even when auto-update is turned off for 
 - Command line tool for terminals, plus a short `play-detach` command in Termux
 - Backup and restore of the list in its own Play-Detach folder in internal storage, plus an automatic backup after every change; the list can also be copied or shared as text
 - Optional `detach.txt` in the module zip to detach apps at install time
-- English and Russian, switchable in the WebUI (EN / RU); the installer and the module description follow the same choice
+- English, Russian and Simplified Chinese, switchable in the WebUI (EN / RU / ZH); the installer and the module description follow the same choice
 - Works only inside the Play Store process, nothing else is touched
 
 ## Requirements
@@ -92,7 +93,7 @@ The module zip is written to `out/`. Without `ANDROID_NDK_HOME`, `build.sh` look
 |---|---|---|
 | Zygisk library | `src/zygisk/` | C++20, NDK r29, arm64-v8a, Zygisk API v4, no third-party libraries |
 | Command line tool | `module/play-detach` | POSIX shell |
-| WebUI | `module/webroot/` | Plain HTML, CSS and JavaScript, no build step, bundled fonts; texts in `i18n.js` (English and Russian) |
+| WebUI | `module/webroot/` | Plain HTML, CSS and JavaScript, no build step, bundled fonts; texts in `i18n.js` (English, Russian and Simplified Chinese) |
 | Banner | `module/banner.png` | Drawn from `src/banner.svg` |
 
 ## Tested on
