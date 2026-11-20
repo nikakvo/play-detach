@@ -863,6 +863,12 @@ main { padding: 4px 14px 120px; }
   .title h1 { font-size: 21px; }
   .help-btn { padding: 8px 12px; font-size: 13px; }
 }
+/* Three languages take more room, and the Chinese button is wider than EN/RU,
+   so the switch is packed tighter where the title would otherwise be squeezed */
+@media (max-width: 430px) {
+  .lang { gap: 1px; }
+  .lang button { padding: 6px 7px; }
+}
 @media (max-width: 370px) {
   .logo { width: 36px; height: 36px; }
   .title h1 { font-size: 19px; }

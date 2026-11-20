@@ -1,4 +1,4 @@
-// Play Detach WebUI - texts in English and Russian
+// Play Detach WebUI - texts in English, Russian and Simplified Chinese
 // Copyright 2026 Tears Burn (nikakvo). Licensed under the Apache License 2.0.
 // Russian translation based on the work of LegacyFreeman.
 //
@@ -7,6 +7,7 @@
 
 (function () {
   // English: 1 app, 2 apps. Russian: 1 приложение, 2 приложения, 5 приложений.
+  // Chinese has no plural forms, so zh uses 个 before the noun instead.
   function pluralEn(n, one, many) {
     return n === 1 ? one : many;
   }
@@ -373,16 +374,200 @@
     to_top: "Наверх",
   };
 
-  const STR = { en, ru };
+  const zh = {
+    lang_name: "中文",
+    help: "帮助",
+    zygisk_module: "Zygisk 模块",
+    search_placeholder: "搜索应用或包名",
+    clear_search: "清除搜索",
+    tab_user: "用户应用",
+    tab_detached: "已分离",
+    tab_system: "系统应用",
+    sideloaded: "侧载",
+    select: "选择",
+    detach_all: "全部分离",
+    back_up: "备份",
+    restore: "恢复",
+    reattach_all: "全部重新关联",
+    loading: "加载中…",
+    remove: "移除",
+    cancel: "取消",
+    close: "关闭",
+    detach: "分离",
+    reattach: "重新关联",
+    stop_selecting: "退出选择",
+    select_all: "全选",
+    select_none: "取消全选",
+    n_selected: (n) => `已选 ${n} 项`,
+
+    not_installed: "未安装",
+    detach_app_aria: (name) => `分离 ${name}`,
+
+    menu_store: "在 Play 商店中打开",
+    menu_store_hint: "已分离的应用在那里不会显示更新按钮",
+    menu_select: "选择多个应用",
+    menu_select_hint: "一次分离或重新关联多个应用",
+    menu_copy: "复制包名",
+    installed_by: (who) => `安装来源：${who}`,
+    inst_store: "Play 商店",
+    inst_apk: "软件包安装程序（APK 文件）",
+    inst_xiaomi_backup: "小米备份（恢复）",
+    inst_neo_backup: "Neo Backup（恢复）",
+    inst_swift_backup: "Swift Backup（恢复）",
+    inst_sai: "SAI（Split APKs Installer）",
+    inst_unknown: "未知（adb、root 终端或系统自带）",
+
+    save_backup: "保存备份",
+    choose_backup: "选择备份",
+    file_name: "文件名",
+    file_exists: "已有同名文件，将被覆盖。",
+    save_here: "保存到此处",
+    auto_backup: "自动备份",
+    auto_backup_hint: "每次更改后把 play-detach-auto.txt 保存到 Play-Detach 文件夹",
+    auto_backup_entry_hint: "每次更改后自动保存",
+    internal_storage: "内部存储",
+    up_one_folder: "上一级",
+    no_folders: "此处没有文件夹。",
+    no_folders_files: "此处没有文件夹或 .txt 文件。",
+
+    apps: (n) => `${n} 个应用`,
+    t_detached: (name) => `${name} 已分离`,
+    t_reattached: (name) => `${name} 已重新关联`,
+    t_n_detached: (n) => `已分离 ${n} 个应用`,
+    t_n_reattached: (n) => `已重新关联 ${n} 个应用`,
+    t_n_removed: (n) => `已从列表中移除 ${n} 个应用`,
+    t_all_reattached: "所有应用已重新关联",
+    t_saved: (n, where) => `已将 ${n} 个应用保存到 ${where}`,
+    t_restored: (n) => `已从备份恢复 ${n} 个应用`,
+    t_auto_on: "自动备份已开启",
+    t_auto_off: "自动备份已关闭",
+    t_copied: "包名已复制",
+    t_copy_failed: "复制失败",
+    t_all_detached_already: "此列表中的应用都已分离",
+    e_change_list: "无法修改列表",
+    e_clear_list: "无法清空列表",
+    e_open_store: "无法打开 Play 商店",
+    e_open_folder: "无法打开此文件夹",
+    e_save_backup: "无法保存备份",
+    e_restore_backup: "无法恢复备份",
+    e_auto_backup: "无法修改自动备份设置",
+    e_no_bridge: "请从 root 管理器中打开此页面",
+
+    ghost_note: (n) => `列表中有 ${n} 个应用未安装。`,
+
+    c_reattach_title: "重新关联所有应用？",
+    c_reattach_text: "Play 商店会重新识别所有已分离的应用，并为其提供更新。",
+    c_restore_title: "恢复此备份？",
+    c_restore_text: (where) => `当前列表将被 ${where} 中保存的应用替换。`,
+    c_detach_title: (n) => `分离 ${n} 个应用？`,
+    c_detach_text: (what, n) =>
+      `${what}（${n} 个）将不再收到 Play 商店更新。你可以逐个重新关联，或使用“全部重新关联”。`,
+    what_search: "搜索结果中尚未分离的应用",
+    what_side: "尚未分离的侧载应用",
+    what_user: "尚未分离的用户应用",
+    c_ghost_title: "移除此列表中未安装的应用？",
+    c_ghost_text: (n) =>
+      `${n} 个应用将从列表中移除。如果你之后会重新安装它们（例如正在重装的已打补丁的应用），就保留它们：这样它们会一直保持分离状态。`,
+
+    empty_matches: "没有匹配结果",
+    empty_matches_hint: "试试其他名称或包名。",
+    empty_detached: "还没有已分离的应用",
+    empty_detached_hint: "打开某个应用旁边的开关，即可让 Play 商店不再更新它。",
+    empty_side: "没有侧载应用",
+    empty_side_hint: "这里的每个用户应用都是由 Play 商店安装的。",
+    empty_none: "此处没有应用",
+
+    s_none: "还没有分离任何应用",
+    s_active: (n) => `已在 Play 商店中生效 - 已分离 ${n} 个应用`,
+    s_pending: (n) => `已分离 ${n} 个应用 - 在 Play 商店打开时生效`,
+    s_problem: (msg) => `出现问题：${msg}`,
+    s_fail: (why) => `未生效：${why}`,
+    s_store_updated: (n) => `Play 商店已更新 - 已分离 ${n} 个应用，将在其打开时检查`,
+
+    // Status and settings
+    auto_pill: "自动",
+    ok: "确定",
+    settings_title: "状态与设置",
+    chk_none: "尚未分离任何应用",
+    chk_none_line: "列表为空时，模块不会介入 Play 商店。",
+    chk_ok: "在 Play 商店中正常工作",
+    chk_wait: "等待 Play 商店启动",
+    chk_fail: "在 Play 商店中未生效",
+    chk_store: (v) => `Play 商店版本：${v}`,
+    chk_store_updated: (d) => `Play 商店更新于：${d}`,
+    chk_last_start: (d) => `Play 商店上次启动：${d}`,
+    chk_never: "自模块安装以来，Play 商店尚未启动。",
+    chk_hook_ok: (api) => `自检：模块已 Hook 到 Play 商店（Android API ${api}）。`,
+    chk_hook_unknown: "自检：尚无上次 Play 商店启动的检查结果。",
+    chk_hook_fail: (why) => `自检未通过：${why}`,
+    chk_after_update: "Play 商店在上次启动之后被更新。它再次打开时会重新检查模块。",
+    chk_pending: "列表在 Play 商店上次启动之后有变化。将在 Play 商店打开时生效。",
+    why_field: "Play 商店或 Android 更改了模块使用的调用",
+    why_binder: "Android 已更改（未找到 libbinder.so）",
+    why_plt: "Android 已更改（无法插入 Hook）",
+    why_api: "不支持此 Android 版本",
+    why_list: "Zygisk 无法把列表传递给 Play 商店",
+    ad_title: "自动分离新的侧载应用",
+    ad_hint: "从 APK 文件、其他应用商店或已打补丁的应用安装的应用会立即被分离，并发送通知",
+    t_ad_on: "新的侧载应用将被自动分离",
+    t_ad_off: "自动分离已关闭",
+    e_ad: "无法修改自动分离设置",
+    recent_title: "自动分离",
+    s_notloaded: "未生效：Zygisk 没有在 Play 商店中加载本模块",
+    chk_notloaded: "当前运行的 Play 商店是在没有本模块的情况下启动的。请确认 Zygisk（例如 ReZygisk）已启用，然后重启设备。",
+    chk_zygisk: (n) => `Zygisk：${n}`,
+    chk_zygisk_none: "Zygisk：未找到（需要 ReZygisk、Zygisk Next、NeoZygisk、SukiSU 内置 Zygisk 或 Magisk 自带的 Zygisk）",
+    skip_title: "不自动分离由以下来源安装的应用",
+    skip_hint: "对于自己更新应用的应用商店，请打开对应开关",
+    skip_none: "此设备上暂时没有其他安装来源",
+    t_skip_on: (n) => `来自 ${n} 的应用不会被自动分离`,
+    t_skip_off: (n) => `来自 ${n} 的应用将再次被自动分离`,
+    e_skip: "无法修改设置",
+    hist_title: "最近更改",
+    hist_detach: "已分离",
+    hist_reattach: "已重新关联",
+    src_user: "由你操作",
+    src_auto: "自动",
+    src_restore: "从备份恢复",
+    src_import: "导入",
+    app_hist: (what, at, src) => `${what}，${at}，${src}`,
+    share_hint: "也可以把列表以文本形式发送，例如发到另一台手机",
+    copy_list: "复制列表",
+    share_list: "分享",
+    t_list_copied: (n) => `已复制 ${n} 个包名`,
+    e_share: "无法打开分享菜单",
+    auto_note: (names) => `已自动分离：${names}。`,
+    auto_note_skip: (n) =>
+      `一次性安装了 ${n} 个新应用，很可能是从备份恢复的。它们没有被自动分离。`,
+
+    module_description: "阻止 Play 商店更新你选择的应用。自动分离侧载应用、备份与自检。",
+
+    // Help page
+    help_title: "帮助",
+    back_to_apps: "返回应用列表",
+    copy_command: "复制命令",
+    copied: "命令已复制",
+    copy_not_supported: "此处不支持复制",
+    contents: "目录",
+    to_top: "返回顶部",
+  };
+
+  const STR = { en, ru, zh };
+  // Every language the switcher offers, in the order it shows them.
+  const LANGS = ["en", "ru", "zh"];
+  // Locale used to format dates and times (Status and settings, recent changes).
+  const LOCALE = { en: "en-GB", ru: "ru-RU", zh: "zh-CN" };
   const KEY = "pd-lang";
 
   function detect() {
     try {
       const saved = localStorage.getItem(KEY);
-      if (saved === "en" || saved === "ru") return saved;
+      if (LANGS.includes(saved)) return saved;
     } catch {}
     const nav = (navigator.languages && navigator.languages[0]) || navigator.language || "en";
-    return /^ru\b/i.test(nav) ? "ru" : "en";
+    if (/^ru\b/i.test(nav)) return "ru";
+    if (/^zh\b/i.test(nav)) return "zh";
+    return "en";
   }
 
   let lang = detect();
@@ -406,7 +591,7 @@
   }
 
   function set(l, remember) {
-    if (l !== "en" && l !== "ru") return;
+    if (!LANGS.includes(l)) return;
     lang = l;
     if (remember !== false) {
       try {
@@ -419,6 +604,9 @@
     t,
     apply,
     set,
+    langs: LANGS,
+    isLang: (l) => LANGS.includes(l),
+    locale: (l) => LOCALE[l || lang] || LOCALE.en,
     get lang() {
       return lang;
     },

@@ -26,6 +26,7 @@
       <div class="lang" role="group" aria-label="Language">
         <button type="button" data-lang="en" aria-pressed="true">EN</button>
         <button type="button" data-lang="ru" aria-pressed="false">RU</button>
+        <button type="button" data-lang="zh" aria-pressed="false">中文</button>
       </div>
       <a class="icon-btn back" id="back" href="index.html" aria-label="Back to apps" data-i18n-aria="back_to_apps">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
@@ -113,7 +114,7 @@
 
     <section>
       <h2>Language</h2>
-      <p>The <strong>EN / RU</strong> switch next to Help changes the language of the whole module: the app, this help page and the module description in your root manager. The choice is remembered. The first time, the language follows the phone. The installer also shows its messages in the chosen language.</p>
+      <p>The <strong>EN / RU / 中文</strong> switch next to Help changes the language of the whole module: the app, this help page and the module description in your root manager. The choice is remembered. The first time, the language follows the phone. The installer also shows its messages in the chosen language.</p>
       <p>Notifications follow the chosen language. The command line and the module log are always in English.</p>
     </section>
 
@@ -271,7 +272,7 @@
 
     <section>
       <h2>Язык</h2>
-      <p>Переключатель <strong>EN / RU</strong> рядом с кнопкой Справка меняет язык всего модуля: приложения, этой справки и описания модуля в root-менеджере. Выбор запоминается. При первом запуске язык выбирается по языку телефона. Установщик модуля тоже показывает сообщения на выбранном языке.</p>
+      <p>Переключатель <strong>EN / RU / 中文</strong> рядом с кнопкой Справка меняет язык всего модуля: приложения, этой справки и описания модуля в root-менеджере. Выбор запоминается. При первом запуске язык выбирается по языку телефона. Установщик модуля тоже показывает сообщения на выбранном языке.</p>
       <p>Уведомления приходят на выбранном языке. Командная строка и журнал модуля всегда на английском.</p>
     </section>
 
@@ -347,6 +348,164 @@
     </section>
 
     <p class="foot">Play Detach от <a href="https://github.com/nikakvo">Tears Burn</a>. Основано на <a href="https://github.com/j-hc/zygisk-detach">zygisk-detach</a> от <a href="https://github.com/j-hc">j-hc</a>. Русский перевод: <a href="https://github.com/LegacyFreeman">LegacyFreeman</a>. Apache License 2.0.</p>
+  </main>
+
+  <main class="help" data-body="zh" lang="zh" hidden>
+    <section>
+      <h2>功能简介</h2>
+      <p>Play 商店会自行更新应用，即使你已经为它们关闭了自动更新。Play Detach 会把你选择的应用从 Play 商店中隐藏起来，因此它永远不会为这些应用推送或安装更新。</p>
+      <p>应用本身不会被修改。它们照常运行，你随时都可以手动更新。</p>
+    </section>
+
+    <section>
+      <h2>使用方法</h2>
+      <ol>
+        <li>在<strong>用户应用</strong>或<strong>系统应用</strong>中找到目标应用。搜索框支持按应用名称和包名搜索。</li>
+        <li>打开它旁边的开关。更改立即生效，Play 商店会被重启，无需重启设备。</li>
+        <li><strong>已分离</strong>标签页会列出所有已分离的应用。关闭某个开关，Play 商店就会重新识别该应用。</li>
+      </ol>
+      <p>带有<strong>未安装</strong>标记的应用仍在你的列表中，但已经从设备上卸载。它们显示在列表顶部并保持分离状态，所以你重新安装的已打补丁的应用会立即受到保护。要清理它们，请点击“已分离”标签页顶部提示中的<strong>移除</strong>，或逐个关闭它们的开关。</p>
+    </section>
+
+    <section>
+      <h2>侧载应用</h2>
+      <p>带有<strong>侧载</strong>标记的应用不是由 Play 商店安装的：来自 APK 文件、其他应用商店、已打补丁的应用、通过备份应用恢复的应用，或是通过 adb、root 终端安装的应用。Android 会记录每个软件包由谁安装，凡安装者不是 Play 商店的应用都算作侧载。长按应用，即可在<strong>安装来源</strong>中查看它的安装者。</p>
+      <p>Play 商店仍然可以用自己的版本替换这些应用，让你的补丁失效，所以通常正是这些应用需要分离。</p>
+      <p>在<strong>用户应用</strong>中点击<strong>侧载</strong>即可只显示它们，然后点击<strong>全部分离</strong>一步分离全部。<strong>全部分离</strong>始终作用于你当前看到的列表，因此也能配合搜索框一并使用。任何更改之前都会先征得你的确认。</p>
+    </section>
+
+    <section>
+      <h2>自动分离新的侧载应用</h2>
+      <p>点击标签页下方的状态栏，打开<strong>状态与设置</strong>，然后打开<strong>自动分离新的侧载应用</strong>。在你打开之前，它一直是关闭的。开启后，凡是从 Play 商店之外安装的新应用（APK 文件、其他商店、已打补丁的应用、adb）都会立即被分离，Play 商店再也无法替换它们。已经安装好的应用不受影响。</p>
+      <p>每个被分离的应用都会发送一条通知，而下次打开 Play Detach 时，顶部的提示会列出被自动分离的应用。状态栏旁的<strong>自动</strong>标记表示该功能已开启。要撤销某个应用的分离，像平常一样关闭它的开关即可；除非你卸载后重新安装，否则它不会被再次分离。</p>
+      <p>由 Play 商店安装的应用，以及通过小米备份、Swift Backup 或 Neo Backup 恢复的应用，永远不会被自动分离。如果一次性出现超过 5 个新应用（通常意味着正在从备份恢复），它们都不会被分离，而是改为发送一条通知。</p>
+      <p><strong>不自动分离由以下来源安装的应用。</strong> 在该开关下方，设备上找到的每个安装来源（用于 APK 文件的软件包安装程序、其他商店、备份应用）都有各自的开关。对于自己更新应用的应用商店，例如 Aurora Store 或 F-Droid，把它打开：由它安装的应用就不再被处理。</p>
+      <p>后台检查不会轮询。它会一直休眠，直到 Android 报告应用目录发生变化（Linux inotify），然后向系统查询一次应用列表，并在 10 秒后再查询一次。在没有安装或卸载任何应用时，它完全不工作，因此不耗电。此外每小时还会执行一次完整检查，以防漏掉某次变化。</p>
+    </section>
+
+    <section>
+      <h2>批量操作多个应用</h2>
+      <p>在用户应用中点击<strong>选择</strong>，或长按任意应用并选择<strong>选择多个应用</strong>。点击应用即可勾选，然后在底部的操作栏点击<strong>分离</strong>或<strong>重新关联</strong>。<strong>全选</strong>会勾选当前列表中的所有应用。点击 X 即可退出选择。</p>
+    </section>
+
+    <section>
+      <h2>应用菜单</h2>
+      <p>长按应用即可打开它的菜单：</p>
+      <ul>
+        <li><strong>安装来源</strong> - 是哪个应用安装了它：Play 商店、软件包安装程序（APK 文件）、备份应用、其他商店，或未知（adb、root 终端或系统自带）。</li>
+        <li><strong>在 Play 商店中打开</strong> - 打开该应用的商店页面，方便你确认已分离的应用不再显示更新按钮。</li>
+        <li><strong>选择多个应用</strong> - 进入选择模式，并已勾选当前应用。</li>
+        <li><strong>复制包名</strong> - 用于命令行或 <code>detach.txt</code>。</li>
+        <li><strong>已分离</strong> - 对已分离的应用显示分离的时间和方式：由你操作、自动、从备份恢复或导入。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>备份与恢复</h2>
+      <p>模块把自己的备份保存在专属文件夹里，即内部存储中的<strong>Play-Detach</strong>（<code>/sdcard/Play-Detach</code>），该文件夹在安装模块时创建。如果你删除了这个文件夹，备份会改为保存到<strong>Download</strong>；重新安装模块会再次创建该文件夹。</p>
+      <p>打开<strong>已分离</strong>标签页：标签页正下方会出现一排按钮。<strong>备份</strong>会打开 Play-Detach 文件夹：可以修改文件名，或切换到其他文件夹，然后点击<strong>保存到此处</strong>。<strong>恢复</strong>会打开同一个文件夹：点击备份文件即可。<strong>全部重新关联</strong>会在你确认后清空整个列表。</p>
+      <p><strong>自动备份。</strong> 每次更改后，列表也会保存到同一文件夹下的 <code>play-detach-auto.txt</code>，恢复窗口中它会以<strong>自动备份</strong>的名字排在最前。空列表永远不会覆盖它，所以在“全部重新关联”之后你仍然能找回旧的列表。可以在备份和恢复窗口里用<strong>自动备份</strong>开关来关闭或开启，也可以使用 <code>su -c '/data/adb/modules/play-detach/play-detach autobackup off'</code>（<code>on</code> 可重新开启）。</p>
+      <p><strong>复制或分享列表。</strong> 备份窗口中还有<strong>复制列表</strong>和<strong>分享</strong>：列表会以与备份文件相同的文本格式发送出去，例如发到聊天软件或你的另一台手机。在那台设备上把它保存为 <code>.txt</code> 文件即可恢复。</p>
+      <p>恢复会用文件中的列表替换当前列表。备份是纯文本文件，每行一个包名，因此你也可以直接编辑它们，或把它们当作 <code>detach.txt</code> 使用。卸载模块后，它们仍会留在你的存储中。</p>
+    </section>
+
+    <section>
+      <h2>状态栏</h2>
+      <ul>
+        <li><strong>已在 Play 商店中生效</strong> - 模块正在 Play 商店中工作。</li>
+        <li><strong>在 Play 商店打开时生效</strong> - 列表在 Play 商店上次启动之后发生了变化；它已被保存，会在 Play 商店下次打开时加载。</li>
+        <li><strong>Play 商店已更新</strong> - Play 商店在上次启动之后被更新。下次 Play 商店打开时会重新检查模块。</li>
+        <li><strong>未生效</strong> - 模块无法在 Play 商店中启动。消息中会说明原因；请参阅下面的“故障排查”。</li>
+        <li><strong>未生效：Zygisk 没有在 Play 商店中加载本模块</strong> - 当前运行的 Play 商店在列表保存之后启动，但模块从未在其中上报。通常是 Zygisk 未开启或已损坏。</li>
+      </ul>
+      <p><strong>更改之后立刻显示橙色是正常的。</strong> 当你切换某个开关时，Play 商店会被关闭，新的列表被保存。在 Play 商店再次启动并加载新列表之前，圆点会保持橙色，随后变为绿色。打开一次 Play 商店，或者等它在后台自行启动即可。</p>
+      <p>点击状态栏可以查看<strong>状态与设置</strong>：Play 商店版本及更新时间、Play 商店上次启动的时间、自检结果、当前生效的 Zygisk，以及列表的<strong>最近更改</strong>（分离或重新关联了什么、何时、由谁操作）。</p>
+    </section>
+
+    <section>
+      <h2>Play 商店更新后的自检</h2>
+      <p>每次 Play 商店启动时，模块都会在自己的日志中记录是否成功 Hook。Play Detach 会在几秒内读取这一行并保存结果，因此即使数小时后日志中已经没有该行，状态依然准确。</p>
+      <p>Play 商店经常自我更新，而新版本或新的 Android 版本都可能改变模块所使用的调用。Play 商店更新后，状态栏会一直提示，直到 Play 商店再次启动并完成检查。如果检查未通过，状态栏会变红并给出原因，同时发送一次通知，让你知道已分离的应用可能重新被更新。只有模块在中间恢复正常之后，才会再次收到通知。</p>
+    </section>
+
+    <section>
+      <h2>语言</h2>
+      <p>帮助按钮旁边的 <strong>EN / RU / 中文</strong> 开关用于切换整个模块的语言：应用界面、本帮助页以及 root 管理器中显示的模块描述。所选语言会被记住。首次打开时，语言跟随系统设置。安装脚本也会用所选语言显示提示。</p>
+      <p>通知会使用所选语言。命令行和模块日志始终为英文。</p>
+    </section>
+
+    <section>
+      <h2>命令行</h2>
+      <p>本页的所有操作都可以在具有 root 权限的终端中完成。在 Termux 中还会安装简短的 <code>play-detach</code> 命令。</p>
+      <div class="cmds">
+        <div class="cmd"><span>查看已分离的应用</span><pre>su -c '/data/adb/modules/play-detach/play-detach list'</pre></div>
+        <div class="cmd"><span>分离一个或多个应用</span><pre>su -c '/data/adb/modules/play-detach/play-detach add com.example.app'</pre></div>
+        <div class="cmd"><span>重新关联一个应用</span><pre>su -c '/data/adb/modules/play-detach/play-detach remove com.example.app'</pre></div>
+        <div class="cmd"><span>全部重新关联</span><pre>su -c '/data/adb/modules/play-detach/play-detach clear'</pre></div>
+        <div class="cmd"><span>检查当前列表是否已生效</span><pre>su -c '/data/adb/modules/play-detach/play-detach status'</pre></div>
+        <div class="cmd"><span>把列表备份到 Play-Detach 文件夹</span><pre>su -c '/data/adb/modules/play-detach/play-detach backup'</pre></div>
+        <div class="cmd"><span>恢复一个备份</span><pre>su -c '/data/adb/modules/play-detach/play-detach restore /sdcard/Play-Detach/play-detach-backup.txt'</pre></div>
+        <div class="cmd"><span>恢复自动备份</span><pre>su -c '/data/adb/modules/play-detach/play-detach restore /sdcard/Play-Detach/play-detach-auto.txt'</pre></div>
+        <div class="cmd"><span>关闭自动备份（用 on 重新开启）</span><pre>su -c '/data/adb/modules/play-detach/play-detach autobackup off'</pre></div>
+        <div class="cmd"><span>自动分离新的侧载应用（用 off 关闭）</span><pre>su -c '/data/adb/modules/play-detach/play-detach autodetach on'</pre></div>
+        <div class="cmd"><span>不自动分离某个安装来源的应用（用 remove 撤销）</span><pre>su -c '/data/adb/modules/play-detach/play-detach autoskip add com.aurora.store'</pre></div>
+        <div class="cmd"><span>查看列表的最近更改</span><pre>su -c '/data/adb/modules/play-detach/play-detach history'</pre></div>
+        <div class="cmd"><span>立即检查新安装的应用</span><pre>su -c '/data/adb/modules/play-detach/play-detach scan'</pre></div>
+        <div class="cmd"><span>查看全部命令</span><pre>su -c '/data/adb/modules/play-detach/play-detach help'</pre></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>安装时分离应用</h2>
+      <p>把名为 <code>detach.txt</code> 的文件放在模块 zip 的根目录，每行写一个包名。安装模块时，其中的应用就会被分离。以 <code>#</code> 开头的行会被忽略。</p>
+    </section>
+
+    <section>
+      <h2>工作原理</h2>
+      <p>Play Detach 是一个 Zygisk 模块，只会加载到 Play 商店的进程中。当 Play 商店向系统查询某个已分离的应用是否安装时，模块会改写这个请求，让系统回答该应用不存在。</p>
+      <p>列表保存在 <code>/data/adb/play-detach/detach.list</code>，每行一个包名。Play 商店之外的一切都不会被改动。</p>
+    </section>
+
+    <section>
+      <h2>系统要求</h2>
+      <ul>
+        <li>Android 10 或更高版本的 arm64 设备</li>
+        <li>可正常工作的 Zygisk：KernelSU、SukiSU-Ultra 或 APatch 上的 ReZygisk、Zygisk Next 或 NeoZygisk，SukiSU-Ultra 内置的 Zygisk，或在 Magisk 中启用的 Zygisk</li>
+        <li>不能与 zygisk-detach 同时运行，两个模块会改写同一批 Play 商店调用。如果它已安装，Play Detach 会在安装时复制它已分离的应用，并询问是否移除它（音量+）、保留它（音量-），若未按任何键则禁用它</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>故障排查</h2>
+      <p>如果某个应用仍然显示在 Play 商店中，请关闭 Play 商店，在系统设置中清除它的缓存，然后重新打开。接着检查模块日志：</p>
+      <pre>su -c 'logcat -d -s PlayDetach'</pre>
+      <p>出现 <strong>active in Play Store</strong> 这一行，说明模块工作正常。其他任何消息都会指出失败的环节，例如缺少 Zygisk，或新版 Android 带来的变化。</p>
+      <p>“状态与设置”中的自检会指出同一个环节：<strong>模块使用的调用被更改</strong>（Play 商店或 Android 改动了它）、<strong>未找到 libbinder.so</strong> 或 <strong>无法插入 Hook</strong>（Android 发生了变化）。这些情况需要更新模块版本。</p>
+      <p>如果状态显示 <strong>Zygisk 没有加载本模块</strong>，请确认你的 Zygisk（ReZygisk、Zygisk Next、NeoZygisk、SukiSU 内置 Zygisk 或 Magisk 中的 Zygisk）已安装并启用，且 Play Detach 已启用，然后重启设备。“状态与设置”中会显示检测到了哪个 Zygisk。</p>
+      <p>如果收不到通知，请在系统设置中确认已允许 <strong>Shell</strong> 应用发送通知；Play Detach 通过它来发送通知。</p>
+    </section>
+
+    <section>
+      <h2>实现方式</h2>
+      <ul>
+        <li><strong>Zygisk 库</strong> - C++20，使用 Android NDK r29 为 arm64-v8a 构建。使用 Zygisk API v4，因此可在 ReZygisk、Zygisk Next、NeoZygisk 和 Magisk 上运行。不依赖任何第三方库。每次读取 Play 商店的 binder 数据都会做边界检查，一旦遇到异常情况，该调用会被原样放行。</li>
+        <li><strong>命令行工具</strong> - 一个纯 shell 脚本。列表先写入临时文件再整体替换，因此 Play 商店绝不会读到写了一半的列表。</li>
+        <li><strong>后台检查</strong> - 一个小型 shell 脚本，开机时启动（<code>service.sh</code>），通过 Linux inotify 事件休眠等待（busybox 或 toybox 的 <code>inotifyd</code>），并及时感知新应用、Play 商店更新和自检失败。如果没有 inotifyd，则退化为每 3 秒检查一次。</li>
+        <li><strong>WebUI</strong> - 纯 HTML、CSS 和 JavaScript，没有框架也没有构建步骤。应用名称和图标来自 root 管理器的 WebUI API。字体已内置，因此可以离线使用。</li>
+        <li><strong>构建</strong> - 一个 <code>build.sh</code> 脚本即可从源码构建整个模块。</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>已测试设备</h2>
+      <ul>
+        <li>Poco F6 Pro，Xiaomi.eu ROM（Android 16），SukiSU-Ultra 和 ReZygisk</li>
+        <li>Xiaomi Redmi Note 8T，InfinityX ROM（Android 17），BakaSU 和 Zygisk Next（由 <a href="https://github.com/LegacyFreeman">LegacyFreeman</a> 测试）</li>
+      </ul>
+      <p>其他设备应该也可以使用，但未经过测试。</p>
+    </section>
+
+    <p class="foot">Play Detach 由 <a href="https://github.com/nikakvo">Tears Burn</a> 开发。基于 <a href="https://github.com/j-hc">j-hc</a> 的 <a href="https://github.com/j-hc/zygisk-detach">zygisk-detach</a>。俄语翻译：<a href="https://github.com/LegacyFreeman">LegacyFreeman</a>。Apache License 2.0。</p>
   </main>
 
   <div class="toast" id="toast" role="status"></div>
