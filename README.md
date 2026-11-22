@@ -25,7 +25,7 @@ The Play Store updates apps on its own, even when auto-update is turned off for 
 - Command line tool for terminals, plus a short `play-detach` command in Termux
 - Backup and restore of the list in its own Play-Detach folder in internal storage, plus an automatic backup after every change; the list can also be copied or shared as text
 - Optional `detach.txt` in the module zip to detach apps at install time
-- English, Russian and Simplified Chinese, switchable in the WebUI (EN / RU / ZH); the installer and the module description follow the same choice
+- English, Russian and Simplified Chinese, chosen in the WebUI from the language menu next to Help; the installer and the module description follow the same choice
 - Works only inside the Play Store process, nothing else is touched
 
 ## Requirements
@@ -105,7 +105,7 @@ The module zip is written to `out/`. Without `ANDROID_NDK_HOME`, `build.sh` look
 
 Play Detach is made by [Tears Burn](https://github.com/nikakvo). It is a rewrite of [zygisk-detach](https://github.com/j-hc/zygisk-detach) by [j-hc](https://github.com/j-hc). The detach technique comes from that project. See `NOTICE` and `THIRD_PARTY_NOTICES.md`.
 
-Russian translation based on the work of [LegacyFreeman](https://github.com/LegacyFreeman).
+Russian translation based on the work of [LegacyFreeman](https://github.com/LegacyFreeman). Simplified Chinese translation by [gander2388](https://github.com/gander2388).
 
 ## License
 

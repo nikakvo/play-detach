@@ -195,6 +195,9 @@
     copy_not_supported: "Copying is not supported here",
     contents: "Contents",
     to_top: "Back to top",
+    language: "Language",
+    ext_bad: "Not opened: not an https address",
+    ext_fail: (m) => `Could not open the browser: ${m}`,
   };
 
   const ru = {
@@ -372,6 +375,9 @@
     copy_not_supported: "Копирование здесь не поддерживается",
     contents: "Содержание",
     to_top: "Наверх",
+    language: "Язык",
+    ext_bad: "Не открыто: это не адрес https",
+    ext_fail: (m) => `Не удалось открыть браузер: ${m}`,
   };
 
   const zh = {
@@ -550,6 +556,9 @@
     copy_not_supported: "此处不支持复制",
     contents: "目录",
     to_top: "返回顶部",
+    language: "语言",
+    ext_bad: "未打开：不是 https 地址",
+    ext_fail: (m) => `无法打开浏览器：${m}`,
   };
 
   const STR = { en, ru, zh };
@@ -557,6 +566,8 @@
   const LANGS = ["en", "ru", "zh"];
   // Locale used to format dates and times (Status and settings, recent changes).
   const LOCALE = { en: "en-GB", ru: "ru-RU", zh: "zh-CN" };
+  // Short name shown in the language box in the header.
+  const SHORT = { en: "EN", ru: "RU", zh: "中文" };
   const KEY = "pd-lang";
 
   function detect() {
@@ -588,6 +599,65 @@
     root.querySelectorAll("[data-i18n-ph]").forEach((el) => el.setAttribute("placeholder", t(el.dataset.i18nPh)));
     root.querySelectorAll("[data-i18n-aria]").forEach((el) => el.setAttribute("aria-label", t(el.dataset.i18nAria)));
     root.querySelectorAll("[data-lang]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+    root.querySelectorAll(".lang-cur").forEach((el) => (el.textContent = SHORT[lang] || lang));
+  }
+
+  // Language box in the header: a tap opens a small menu with every language,
+  // a tap on one chooses it. While the menu is open a clear layer covers the
+  // page, so a tap next to the menu only closes it and never reaches what is
+  // under it. Opening adds a history entry: the phone's Back closes the menu
+  // instead of leaving the WebUI. Escape and scrolling close it too.
+  function menu(onChoose) {
+    const btn = document.getElementById("lang-btn");
+    const list = document.getElementById("lang-menu");
+    if (!btn || !list) return;
+    const shade = document.createElement("div");
+    shade.className = "lang-shade";
+    shade.hidden = true;
+    list.before(shade);
+    try {
+      history.scrollRestoration = "manual";
+    } catch {}
+    let entry = false; // our history entry is the current one
+    const show = (open, byBack) => {
+      list.hidden = !open;
+      shade.hidden = !open;
+      btn.setAttribute("aria-expanded", String(open));
+      if (open && !entry) {
+        try {
+          history.pushState({ pdLangMenu: 1 }, "");
+          entry = true;
+        } catch {}
+      } else if (!open && entry) {
+        entry = false;
+        if (!byBack) history.back();
+      }
+    };
+    window.addEventListener("popstate", () => {
+      if (entry) show(false, true);
+    });
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      show(list.hidden);
+    });
+    const shut = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      show(false);
+    };
+    shade.addEventListener("click", shut);
+    shade.addEventListener("contextmenu", shut);
+    list.querySelectorAll("[data-lang]").forEach((b) =>
+      b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        show(false);
+        onChoose(b.dataset.lang);
+      })
+    );
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !list.hidden) show(false);
+    });
+    window.addEventListener("scroll", () => list.hidden || show(false), { passive: true });
   }
 
   function set(l, remember) {
@@ -606,6 +676,7 @@
     set,
     langs: LANGS,
     isLang: (l) => LANGS.includes(l),
+    menu,
     locale: (l) => LOCALE[l || lang] || LOCALE.en,
     get lang() {
       return lang;

@@ -1313,7 +1313,7 @@ async function setAutoDetach(on) {
 // ---------------------------------------------------------------------------
 
 function setupUi() {
-  document.querySelectorAll("[data-lang]").forEach((b) => b.addEventListener("click", () => chooseLang(b.dataset.lang)));
+  I18N.menu(chooseLang);
 
   const search = $("search");
   const clear = $("clear");

@@ -34,7 +34,7 @@ function chooseLang(l) {
   } catch {}
 }
 
-document.querySelectorAll("[data-lang]").forEach((b) => b.addEventListener("click", () => chooseLang(b.dataset.lang)));
+I18N.menu(chooseLang);
 
 // Back arrow: return to the previous page instead of opening index.html again,
 // so the phone's back button leaves the module afterwards.
@@ -53,6 +53,41 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
 }
+
+// Outside sites open in the phone's browser. The root manager would load a
+// link in this WebView, where the site's scripts could reach ksu.exec.
+function openExt(url) {
+  if (!/^https:\/\/[a-z0-9.-]+\/[a-z0-9._\/-]*$/i.test(url)) return toast(t("ext_bad"));
+  const ksu = window.ksu;
+  if (!ksu || typeof ksu.exec !== "function") return toast(t("ext_fail", "no root bridge"));
+  const cmd = `am start -a android.intent.action.VIEW -d '${url}' 2>&1`;
+  const check = (errno, out) => {
+    const err = String(out || "").split("\n").find((l) => /^Error/.test(l));
+    if (errno !== 0 || err) toast(t("ext_fail", err || `am start ended with ${errno}`));
+  };
+  const cb = `pd_ext_${Date.now()}`;
+  window[cb] = (errno, stdout, stderr) => {
+    delete window[cb];
+    check(typeof errno === "number" ? errno : 0, String(stdout || "") + String(stderr || ""));
+  };
+  try {
+    ksu.exec(cmd, "{}", cb);
+  } catch {
+    delete window[cb];
+    try {
+      const r = ksu.exec(cmd);
+      check(0, typeof r === "string" ? r : (r && r.stdout) || "");
+    } catch (e) {
+      toast(t("ext_fail", String((e && e.message) || e)));
+    }
+  }
+}
+document.addEventListener("click", (e) => {
+  const a = e.target.closest && e.target.closest("a[data-ext]");
+  if (!a) return;
+  e.preventDefault();
+  openExt(a.getAttribute("data-ext"));
+});
 
 function fallbackCopy(text) {
   const ta = document.createElement("textarea");

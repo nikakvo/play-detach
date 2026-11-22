@@ -125,28 +125,66 @@ button, input { font: inherit; color: inherit; }
   flex: none;
 }
 .icon-btn svg { width: 20px; height: 20px; }
-/* EN / RU switch next to Help */
+/* Language box next to Help: the current language, a tap opens the menu */
 .lang {
   margin-left: auto;
   flex: none;
+  position: relative;
+}
+.lang-btn {
+  position: relative;
+  z-index: 21;
   display: flex;
-  padding: 3px;
-  gap: 2px;
+  align-items: center;
+  gap: 5px;
+  height: 36px;
+  padding: 0 9px 0 10px;
   border-radius: 999px;
   border: 1px solid var(--line);
   background: var(--card);
-}
-.lang button {
-  border: 0;
-  background: none;
-  color: var(--faint);
+  color: var(--muted);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.03em;
-  padding: 6px 9px;
-  border-radius: 999px;
 }
-.lang button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+.lang-btn svg { width: 16px; height: 16px; flex: none; }
+.lang-btn .chev { width: 13px; height: 13px; transition: transform 0.15s; }
+.lang-btn[aria-expanded="true"] { border-color: var(--accent); color: var(--fg); }
+.lang-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+/* Clear layer under the open menu: a tap on it only closes the menu */
+.lang-shade { position: fixed; inset: 0; z-index: 19; background: transparent; }
+.lang-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  min-width: 150px;
+  padding: 5px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--card-hi);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  display: grid;
+  gap: 2px;
+}
+.lang-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  border: 0;
+  background: none;
+  color: var(--fg);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+.lang-menu button:active { background: var(--accent-soft); }
+.lang-menu button[aria-pressed="true"] { color: var(--accent-hi); background: var(--accent-soft); }
+.lang-menu button[aria-pressed="true"]::after { content: "\2713"; font-weight: 800; }
 .lang + .help-btn, .lang + .icon-btn { margin-left: 0; }
 .help-btn {
   margin-left: auto;
@@ -863,16 +901,10 @@ main { padding: 4px 14px 120px; }
   .title h1 { font-size: 21px; }
   .help-btn { padding: 8px 12px; font-size: 13px; }
 }
-/* Three languages take more room, and the Chinese button is wider than EN/RU,
-   so the switch is packed tighter where the title would otherwise be squeezed */
-@media (max-width: 430px) {
-  .lang { gap: 1px; }
-  .lang button { padding: 6px 7px; }
-}
 @media (max-width: 370px) {
   .logo { width: 36px; height: 36px; }
   .title h1 { font-size: 19px; }
-  .lang button { padding: 6px 7px; }
+  .lang-btn { padding: 0 7px 0 8px; gap: 4px; }
 }
 .title h1 { white-space: nowrap; }
 
@@ -955,3 +987,12 @@ html[lang="ru"] .act { font-size: 12px; }
 }
 .to-top svg { width: 22px; height: 22px; }
 .to-top.show { opacity: 1; transform: none; pointer-events: auto; }
+
+/* Chinese: the bundled fonts have no Chinese letters, so the whole page uses
+   the phone's own font (with the bundled ones Latin and Chinese would mix two
+   fonts on one line). Commands keep the monospace font. */
+html[lang="zh"] {
+  --f-display: system-ui, "Noto Sans CJK SC", "Noto Sans SC", "PingFang SC", sans-serif;
+  --f-body: system-ui, "Noto Sans CJK SC", "Noto Sans SC", "PingFang SC", sans-serif;
+}
+

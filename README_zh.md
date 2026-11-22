@@ -25,7 +25,7 @@ Play 商店会自行更新应用，即使你已经为它们关闭了自动更新
 - 用于终端的命令行工具，以及在 Termux 中提供的简短 `play-detach` 命令
 - 列表的备份与恢复，保存在内部存储中专用的 Play-Detach 文件夹里；每次更改后自动备份；列表还可以复制或作为文本分享
 - 可选：在模块 zip 中放置 `detach.txt`，在安装时分离应用
-- 支持中文、英文和俄文，可在 WebUI 中切换（中文 / EN / RU）；安装脚本和模块描述会跟随同一选择
+- 支持中文、英文和俄文，可在 WebUI 中通过帮助按钮旁边的语言菜单选择；安装脚本和模块描述会跟随同一选择
 - 只在 Play 商店进程中工作，不影响其他任何东西
 
 ## 系统要求
@@ -105,7 +105,7 @@ ANDROID_NDK_HOME=/path/to/android-ndk-r29 ./build.sh
 
 Play Detach 由 [Tears Burn](https://github.com/nikakvo) 开发。它是 [j-hc](https://github.com/j-hc) 的 [zygisk-detach](https://github.com/j-hc/zygisk-detach) 的重写版本，分离技术来自该项目。详见 `NOTICE` 和 `THIRD_PARTY_NOTICES.md`。
 
-俄语翻译基于 [LegacyFreeman](https://github.com/LegacyFreeman) 的工作。
+俄语翻译基于 [LegacyFreeman](https://github.com/LegacyFreeman) 的工作。简体中文翻译由 [gander2388](https://github.com/gander2388) 完成。
 
 ## 许可证
 

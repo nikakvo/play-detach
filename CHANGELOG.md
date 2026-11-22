@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.5.0
+
+- New: Simplified Chinese, translated by gander2388. It covers the WebUI, the help page, the installer, the notifications and the module description
+- The language is chosen from a small box next to Help: a tap opens a menu with every language
+- In Chinese the WebUI uses the phone's own font, so Latin and Chinese letters match
+- The links on the help page (GitHub) open in your browser instead of inside the WebUI, where a website could reach the root manager
+
 ## v1.4.1
 
 - Status and settings now recognises the built-in Zygisk of SukiSU-Ultra instead of saying that no Zygisk was found. Detaching itself already worked with it

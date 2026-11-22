@@ -23,10 +23,17 @@
         <h1 data-i18n="help_title">Help</h1>
         <div class="sub">Play Detach</div>
       </div>
-      <div class="lang" role="group" aria-label="Language">
-        <button type="button" data-lang="en" aria-pressed="true">EN</button>
-        <button type="button" data-lang="ru" aria-pressed="false">RU</button>
-        <button type="button" data-lang="zh" aria-pressed="false">中文</button>
+      <div class="lang" id="lang">
+        <button type="button" class="lang-btn" id="lang-btn" aria-haspopup="true" aria-expanded="false" aria-controls="lang-menu" aria-label="Language" data-i18n-aria="language">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>
+          <span class="lang-cur">EN</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="lang-menu" id="lang-menu" hidden>
+          <button type="button" data-lang="en" aria-pressed="true" lang="en">English</button>
+          <button type="button" data-lang="ru" aria-pressed="false" lang="ru">Русский</button>
+          <button type="button" data-lang="zh" aria-pressed="false" lang="zh">简体中文</button>
+        </div>
       </div>
       <a class="icon-btn back" id="back" href="index.html" aria-label="Back to apps" data-i18n-aria="back_to_apps">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
@@ -114,7 +121,7 @@
 
     <section>
       <h2>Language</h2>
-      <p>The <strong>EN / RU / 中文</strong> switch next to Help changes the language of the whole module: the app, this help page and the module description in your root manager. The choice is remembered. The first time, the language follows the phone. The installer also shows its messages in the chosen language.</p>
+      <p>The language box next to Help (<strong>EN</strong>, <strong>RU</strong> or <strong>中文</strong>) opens a menu with every language. The choice changes the language of the whole module: the app, this help page and the module description in your root manager. The choice is remembered. The first time, the language follows the phone. The installer also shows its messages in the chosen language.</p>
       <p>Notifications follow the chosen language. The command line and the module log are always in English.</p>
     </section>
 
@@ -184,12 +191,12 @@
       <h2>Tested on</h2>
       <ul>
         <li>Poco F6 Pro with the Xiaomi.eu ROM (Android 16), SukiSU-Ultra and ReZygisk</li>
-        <li>Xiaomi Redmi Note 8T with the InfinityX ROM (Android 17), BakaSU and Zygisk Next (tested by <a href="https://github.com/LegacyFreeman">LegacyFreeman</a>)</li>
+        <li>Xiaomi Redmi Note 8T with the InfinityX ROM (Android 17), BakaSU and Zygisk Next (tested by <a href="#" data-ext="https://github.com/LegacyFreeman/">LegacyFreeman</a>)</li>
       </ul>
       <p>Other devices should work but were not tested.</p>
     </section>
 
-    <p class="foot">Play Detach by <a href="https://github.com/nikakvo">Tears Burn</a>. Based on <a href="https://github.com/j-hc/zygisk-detach">zygisk-detach</a> by <a href="https://github.com/j-hc">j-hc</a>. Russian translation by <a href="https://github.com/LegacyFreeman">LegacyFreeman</a>. Apache License 2.0.</p>
+    <p class="foot">Play Detach by <a href="#" data-ext="https://github.com/nikakvo/">Tears Burn</a>. Based on <a href="#" data-ext="https://github.com/j-hc/zygisk-detach/">zygisk-detach</a> by <a href="#" data-ext="https://github.com/j-hc/">j-hc</a>. Russian translation by <a href="#" data-ext="https://github.com/LegacyFreeman/">LegacyFreeman</a>. Simplified Chinese translation by <a href="#" data-ext="https://github.com/gander2388/">gander2388</a>. Apache License 2.0.</p>
   </main>
 
   <main class="help" data-body="ru" lang="ru" hidden>
@@ -272,7 +279,7 @@
 
     <section>
       <h2>Язык</h2>
-      <p>Переключатель <strong>EN / RU / 中文</strong> рядом с кнопкой Справка меняет язык всего модуля: приложения, этой справки и описания модуля в root-менеджере. Выбор запоминается. При первом запуске язык выбирается по языку телефона. Установщик модуля тоже показывает сообщения на выбранном языке.</p>
+      <p>Поле языка рядом с кнопкой Справка (<strong>EN</strong>, <strong>RU</strong> или <strong>中文</strong>) открывает меню со всеми языками. Выбор меняет язык всего модуля: приложения, этой справки и описания модуля в root-менеджере. Выбор запоминается. При первом запуске язык выбирается по языку телефона. Установщик модуля тоже показывает сообщения на выбранном языке.</p>
       <p>Уведомления приходят на выбранном языке. Командная строка и журнал модуля всегда на английском.</p>
     </section>
 
@@ -342,12 +349,12 @@
       <h2>Проверено на</h2>
       <ul>
         <li>Poco F6 Pro, прошивка Xiaomi.eu (Android 16), SukiSU-Ultra и ReZygisk</li>
-        <li>Xiaomi Redmi Note 8T, прошивка InfinityX (Android 17), BakaSU и Zygisk Next (проверил <a href="https://github.com/LegacyFreeman">LegacyFreeman</a>)</li>
+        <li>Xiaomi Redmi Note 8T, прошивка InfinityX (Android 17), BakaSU и Zygisk Next (проверил <a href="#" data-ext="https://github.com/LegacyFreeman/">LegacyFreeman</a>)</li>
       </ul>
       <p>На других устройствах тоже должно работать, но они не проверялись.</p>
     </section>
 
-    <p class="foot">Play Detach от <a href="https://github.com/nikakvo">Tears Burn</a>. Основано на <a href="https://github.com/j-hc/zygisk-detach">zygisk-detach</a> от <a href="https://github.com/j-hc">j-hc</a>. Русский перевод: <a href="https://github.com/LegacyFreeman">LegacyFreeman</a>. Apache License 2.0.</p>
+    <p class="foot">Play Detach от <a href="#" data-ext="https://github.com/nikakvo/">Tears Burn</a>. Основано на <a href="#" data-ext="https://github.com/j-hc/zygisk-detach/">zygisk-detach</a> от <a href="#" data-ext="https://github.com/j-hc/">j-hc</a>. Русский перевод: <a href="#" data-ext="https://github.com/LegacyFreeman/">LegacyFreeman</a>. Перевод на упрощённый китайский: <a href="#" data-ext="https://github.com/gander2388/">gander2388</a>. Apache License 2.0.</p>
   </main>
 
   <main class="help" data-body="zh" lang="zh" hidden>
@@ -430,7 +437,7 @@
 
     <section>
       <h2>语言</h2>
-      <p>帮助按钮旁边的 <strong>EN / RU / 中文</strong> 开关用于切换整个模块的语言：应用界面、本帮助页以及 root 管理器中显示的模块描述。所选语言会被记住。首次打开时，语言跟随系统设置。安装脚本也会用所选语言显示提示。</p>
+      <p>帮助按钮旁边的语言框（<strong>EN</strong>、<strong>RU</strong> 或 <strong>中文</strong>）会打开包含所有语言的菜单。所选语言用于切换整个模块的语言：应用界面、本帮助页以及 root 管理器中显示的模块描述。所选语言会被记住。首次打开时，语言跟随系统设置。安装脚本也会用所选语言显示提示。</p>
       <p>通知会使用所选语言。命令行和模块日志始终为英文。</p>
     </section>
 
@@ -500,12 +507,12 @@
       <h2>已测试设备</h2>
       <ul>
         <li>Poco F6 Pro，Xiaomi.eu ROM（Android 16），SukiSU-Ultra 和 ReZygisk</li>
-        <li>Xiaomi Redmi Note 8T，InfinityX ROM（Android 17），BakaSU 和 Zygisk Next（由 <a href="https://github.com/LegacyFreeman">LegacyFreeman</a> 测试）</li>
+        <li>Xiaomi Redmi Note 8T，InfinityX ROM（Android 17），BakaSU 和 Zygisk Next（由 <a href="#" data-ext="https://github.com/LegacyFreeman/">LegacyFreeman</a> 测试）</li>
       </ul>
       <p>其他设备应该也可以使用，但未经过测试。</p>
     </section>
 
-    <p class="foot">Play Detach 由 <a href="https://github.com/nikakvo">Tears Burn</a> 开发。基于 <a href="https://github.com/j-hc">j-hc</a> 的 <a href="https://github.com/j-hc/zygisk-detach">zygisk-detach</a>。俄语翻译：<a href="https://github.com/LegacyFreeman">LegacyFreeman</a>。Apache License 2.0。</p>
+    <p class="foot">Play Detach 由 <a href="#" data-ext="https://github.com/nikakvo/">Tears Burn</a> 开发。基于 <a href="#" data-ext="https://github.com/j-hc/">j-hc</a> 的 <a href="#" data-ext="https://github.com/j-hc/zygisk-detach/">zygisk-detach</a>。俄语翻译：<a href="#" data-ext="https://github.com/LegacyFreeman/">LegacyFreeman</a>。简体中文翻译：<a href="#" data-ext="https://github.com/gander2388/">gander2388</a>。Apache License 2.0。</p>
   </main>
 
   <div class="toast" id="toast" role="status"></div>
