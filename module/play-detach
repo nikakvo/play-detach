@@ -80,11 +80,12 @@ Each change also saves Play-Detach/play-detach-auto.txt (automatic backup).
 EOF
 }
 
-# Language of notifications: the one chosen in the WebUI (EN / RU switch).
+# Language of notifications: the one chosen in the WebUI (EN / RU / ZH switch).
 # The command line itself stays in English.
 ui_lang() {
     case "$(cat "$DATA_DIR/lang" 2>/dev/null)" in
         ru) echo ru ;;
+        zh) echo zh ;;
         *) echo en ;;
     esac
 }
@@ -94,12 +95,16 @@ shq() {
     printf "'%s'" "$(echo "$1" | sed "s/'/'\\\\''/g")"
 }
 
-# notify <tag> <english> <russian>: a notification from the system shell.
-# The same tag replaces the previous notification. Posted as the shell user
-# (uid 2000): a notification posted as root is accepted but never shown.
+# notify <tag> <english> <russian> <chinese>: a notification from the system
+# shell. The same tag replaces the previous notification. Posted as the shell
+# user (uid 2000): a notification posted as root is accepted but never shown.
 # Best effort only.
 notify() {
-    if [ "$(ui_lang)" = ru ]; then text=$3; else text=$2; fi
+    case "$(ui_lang)" in
+        ru) text=$3 ;;
+        zh) text=${4:-$2} ;;
+        *) text=$2 ;;
+    esac
     su 2000 -c "cmd notification post -S bigtext -t 'Play Detach' $(shq "$1") $(shq "$text")" >/dev/null 2>&1 ||
         cmd notification post -S bigtext -t 'Play Detach' "$1" "$text" >/dev/null 2>&1
 }
@@ -460,7 +465,8 @@ scan_apps() {
         echo "$now skip $n" >>"$AUTO_LOG"
         notify play-detach-auto \
             "$n new apps were installed at once, probably restored from a backup. They were not detached automatically. Open Play Detach to check them." \
-            "Сразу установлено $n новых приложений, вероятно восстановление из бэкапа. Они не откреплены автоматически. Проверьте их в Play Detach."
+            "Сразу установлено $n новых приложений, вероятно восстановление из бэкапа. Они не откреплены автоматически. Проверьте их в Play Detach." \
+            "一次性安装了 $n 个新应用，很可能是从备份恢复的。它们没有被自动分离。请打开 Play Detach 查看。"
     else
         if [ -n "$found" ]; then
             list_lock
@@ -472,21 +478,25 @@ scan_apps() {
         for p in $found $kept; do echo "$now $p" >>"$AUTO_LOG"; done
         en=
         ru=
+        zh=
         if [ -n "$found" ]; then
             names=$(echo $found | sed 's/ /, /g')
             en="Detached automatically: $names. "
             ru="Откреплено автоматически: $names. "
+            zh="已自动分离：$names。"
             echo "Detached automatically:$found"
         fi
         if [ -n "$kept" ]; then
             names=$(echo $kept | sed 's/ /, /g')
             en="${en}Installed again and still detached: $names. "
             ru="${ru}Установлено заново и по-прежнему откреплено: $names. "
+            zh="${zh}重新安装后仍保持分离：$names。"
             echo "Still detached:$kept"
         fi
         notify play-detach-auto \
             "${en}New apps installed outside the Play Store get no Play Store updates. Open Play Detach to undo." \
-            "${ru}Новые приложения, установленные вне Маркета, не обновляются через Play Маркет. Отменить можно в Play Detach."
+            "${ru}Новые приложения, установленные вне Маркета, не обновляются через Play Маркет. Отменить можно в Play Detach." \
+            "${zh}从 Play 商店之外安装的新应用不会通过 Play 商店更新。可在 Play Detach 中撤销。"
     fi
     chmod 600 "$AUTO_LOG"
     # Keep the log short
@@ -574,7 +584,8 @@ check_hook() {
     echo "$hook" >"$NOTIFIED"
     notify play-detach-check \
         "Play Detach does not work in the Play Store right now (step: $hook), probably after a Play Store or Android update. Detached apps can get updates again. Open Play Detach for details." \
-        "Play Detach сейчас не работает в Play Маркете (шаг: $hook), вероятно после обновления Play Маркета или Android. Откреплённые приложения снова могут обновиться. Подробности в Play Detach."
+        "Play Detach сейчас не работает в Play Маркете (шаг: $hook), вероятно после обновления Play Маркета или Android. Откреплённые приложения снова могут обновиться. Подробности в Play Detach." \
+        "Play Detach 目前在 Play 商店中不工作（失败环节：$hook），可能是 Play 商店或 Android 更新导致的。已分离的应用可能重新被更新。详情请打开 Play Detach 查看。"
 }
 
 [ "$(id -u)" = 0 ] || die "root is required, run: su -c '/data/adb/modules/play-detach/play-detach $*'"
